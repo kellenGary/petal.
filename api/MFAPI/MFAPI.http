@@ -1,0 +1,17 @@
+@MFAPI_HostAddress = http://localhost:5164
+@SpotifyAccessToken = BQA6MIXO3Ql8AgF6DJBAgv4_Tnwb4Pwx4ismu8Vixb2A2sQDe_fzO3NmEFG1nokvWWR6uqgMhNcPPaXSoa1krfAYqIAnNQYz0zhdw0WnWaIB9jfCaiWHIhVFs-SP8ET8jzOOUrHMnHurXif_Wx5zkcXg5opctiBklQEBT8E8p7Iym_bc4Xx6ziqZP6bRNQXxm40Js--BXLqgsFbWPld-36auQGtTsNrDU0NarsirqNGB-Q7OZW5W8D97olP6xJ1EX2k
+@SpotifyRefreshToken = AQDSN8Xn87O4xViHlaR1AsdmYgb3fcIVNfuSmZS2IQi0_nXDbHkZus1sM6ErXUEVbQfnCwOOTAuMLQKU3zJvKUPwjduRWm5ii1MQcWFkWRNUJKkasrGu_IC_AA3rba6DIts
+
+###
+
+# Get Spotify Playlists
+GET {{MFAPI_HostAddress}}/api/spotify/playlists?accessToken={{SpotifyAccessToken}}
+Accept: application/json
+
+###
+
+# Get Recently Played
+GET {{MFAPI_HostAddress}}/api/spotify/recently-played?accessToken={{SpotifyAccessToken}}
+Accept: application/json
+
+###

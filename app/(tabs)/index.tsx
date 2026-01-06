@@ -1,98 +1,173 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { useAuth } from "@/contexts/AuthContext";
+import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
+import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
+import MapView from "react-native-maps";
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const { accessToken } = useAuth();
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  return (
+    <View style={styles.container}>
+      <LinearGradient
+        colors={["#4887cfff", "#63e857ff", "#abafeaff", "#ffffffff"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.containerGradient}
+      >
+        <ScrollView style={styles.scrollView}>
+          {/* Hero */}
+          <View style={styles.headerGradient}>
+            {/* Hero Header */}
+            <View style={styles.headerContainer}>
+              <Image
+                source={require("../../assets/images/black-icon.png")}
+                style={styles.headerImage}
+              />
+              <Text style={styles.headerText}>Welcome Kellen</Text>
+            </View>
+
+            <View style={styles.headerContentContainer}>
+              {/* Map Section */}
+              <MapView
+                style={styles.map}
+              />
+
+              {/* Live Listeners Section */}
+              <View style={styles.activeContainer}>
+                <Text style={styles.activeHeaderText}>Listening Now</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.activeScrollView}
+                  contentContainerStyle={styles.activeScrollContent}
+                >
+                    <View style={styles.listenerCard}>
+                      <View style={styles.songBubble}>
+                        <Text style={styles.songName} numberOfLines={2}>
+                          songName
+                        </Text>
+                      </View>
+                      <View style={styles.profileImageContainer}>
+                        <Image
+                          source={{ uri: "https://i.pravatar.cc/300?img=12" }}
+                          style={styles.profileImage}
+                        />
+                      </View>
+                      <Text style={styles.username}>Name</Text>
+                    </View>
+                </ScrollView>
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+      </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  containerGradient: {
+    flex: 1,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  scrollView: {
+    flex: 1,
+  },
+  headerGradient: {
+    width: "100%",
+    minHeight: Dimensions.get("window").height,
+    gap: 32,
+  },
+  headerContainer: {
+    width: "100%",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: 32,
+  },
+  headerImage: {
+    width: 96,
+    height: 96,
+  },
+  headerText: {
+    fontSize: 32,
+    fontWeight: "600",
+    color: "black",
+  },
+  headerContentContainer: {
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+  },
+  map: {
+    height: 240,
+    width: "100%",
+    borderRadius: 16,
+  },
+  activeContainer: {
+    width: "100%",
+  },
+  activeHeaderText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "black",
+    marginBottom: 12,
+  },
+  activeScrollView: {
+    width: "100%",
+  },
+  activeScrollContent: {
+    gap: 16,
+    paddingVertical: 8,
+  },
+  listenerCard: {
+    alignItems: "center",
+  },
+  songBubble: {
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    maxWidth: 120,
+    minHeight: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    marginBottom: -12,
+    zIndex: 1,
+  },
+  songName: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#000",
+    textAlign: "center",
+  },
+  profileImageContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 3,
+    borderColor: "#667eea",
+    padding: 2,
+  },
+  profileImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 28,
+  },
+  username: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "black",
+    textAlign: "center",
+    marginTop: 8,
   },
 });
