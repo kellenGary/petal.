@@ -1,6 +1,7 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   Pressable,
@@ -51,6 +52,7 @@ type TabType = 'forYou' | 'trending' | 'nearby';
 export default function ExploreScreen() {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
+  const router = useRouter();
   const isDark = colorScheme === 'dark';
   const [activeTab, setActiveTab] = useState<TabType>('forYou');
   const [searchQuery, setSearchQuery] = useState('');
@@ -82,7 +84,11 @@ export default function ExploreScreen() {
   );
 
   const renderFeaturedPlaylist = (item: { id: string; name: string; description: string; cover: string }) => (
-    <Pressable key={item.id} style={styles.featuredCard}>
+    <Pressable 
+      key={item.id} 
+      style={styles.featuredCard}
+      onPress={() => router.push(`/playlist/${item.id}`)}
+    >
       <Image source={{ uri: item.cover }} style={styles.featuredCover} />
       <ThemedText style={styles.featuredName} numberOfLines={1}>{item.name}</ThemedText>
       <ThemedText style={styles.featuredDescription} numberOfLines={2}>{item.description}</ThemedText>

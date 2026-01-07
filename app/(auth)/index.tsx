@@ -20,7 +20,7 @@ export default function SignInScreen() {
 
     try {
       const response = await fetch(
-        `${API_URL}/api/auth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || "")}`
+        `${API_URL}/auth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || "")}`
       );
 
       if (!response.ok) {
@@ -29,11 +29,11 @@ export default function SignInScreen() {
 
       const data = await response.json();
 
-      if (data.access_token) {
-        await signIn(data.access_token);
+      if (data.token && data.user) {
+        await signIn(data.token, data.user);
         router.replace("/(tabs)");
       } else {
-        throw new Error("No access token received");
+        throw new Error("No token received");
       }
     } catch (error) {
       console.error("Login error:", error);

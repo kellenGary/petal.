@@ -1,28 +1,39 @@
+import { API_URL } from '@/constants/auth';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useFocusEffect } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    View,
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { API_URL } from '@/constants/auth';
 
+import PlaylistItem from '@/components/playlist-item';
+import SongItem from '@/components/song-item';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Fonts } from '@/constants/theme';
+import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 type TabType = 'history' | 'playlists' | 'liked';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const JWT = useAuth().jwtToken;
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const [activeTab, setActiveTab] = useState<TabType>('history');
+  const [profileData, setProfileData] = useState(null);
+  const [historyData, setHistoryData] = useState(null);
+  const [playlistsData, setPlaylistsData] = useState(null);
+  const [likedSongsData, setLikedSongsData] = useState(null);
+  const [loading , setLoading] = useState(false);
 
   const colors = Colors[isDark ? 'dark' : 'light'];
 
@@ -32,58 +43,193 @@ export default function ProfileScreen() {
     return num.toString();
   };
 
-  const renderSongItem = (item: { id: string; title: string; artist: string; cover: string }) => (
-    <Pressable key={item.id} style={styles.songItem}>
-      <Image source={{ uri: item.cover }} style={styles.songCover} />
-      <View style={styles.songInfo}>
-        <ThemedText style={styles.songTitle} numberOfLines={1}>{item.title}</ThemedText>
-        <ThemedText style={styles.songArtist} numberOfLines={1}>{item.artist}</ThemedText>
-      </View>
-      <MaterialIcons name="play-circle-outline" size={28} color={colors.icon} />
-    </Pressable>
-  );
-
-  const renderPlaylistItem = (item: { id: string; name: string; songCount: number; cover: string }) => (
-    <Pressable key={item.id} style={styles.playlistItem}>
-      <Image source={{ uri: item.cover }} style={styles.playlistCover} />
-      <View style={styles.playlistInfo}>
-        <ThemedText style={styles.playlistName} numberOfLines={1}>{item.name}</ThemedText>
-        <ThemedText style={styles.playlistCount}>{item.songCount} songs</ThemedText>
-      </View>
-      <MaterialIcons name="chevron-right" size={24} color={colors.icon} />
-    </Pressable>
-  );
-
   const renderContent = () => {
+    if (loading) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#1DB954" />
+          <ThemedText style={styles.loadingText}>Loading...</ThemedText>
+        </View>
+      );
+    }
+
     switch (activeTab) {
       case 'history':
         return (
           <View style={styles.contentSection}>
             <ThemedText style={styles.sectionTitle}>Recently Played</ThemedText>
+            {historyData?.items?.map((item, index) => (
+              <SongItem
+                key={`${item.track.id}-${index}`}
+                id={item.track.id}
+                title={item.track.name}
+                artist={item.track.artists.map(artist => artist.name).join(', ')}
+                cover={item.track.album.images[0]?.url || ''}
+                link={item.track.external_urls.spotify}
+              />
+            ))}
           </View>
         );
       case 'playlists':
         return (
           <View style={styles.contentSection}>
             <ThemedText style={styles.sectionTitle}>Your Playlists</ThemedText>
+            {playlistsData?.items
+              ?.filter((playlist) => playlist.owner.id === profileData?.id)
+              .map((playlist) => (
+                <PlaylistItem
+                  key={playlist.id}
+                  id={playlist.id}
+                  name={playlist.name}
+                  songCount={playlist.tracks.total}
+                  cover={playlist.images[0]?.url || ''}
+                  link={`/playlist/${playlist.id}`}
+                />
+              ))}
           </View>
         );
       case 'liked':
         return (
           <View style={styles.contentSection}>
             <ThemedText style={styles.sectionTitle}>Liked Songs</ThemedText>
+            {likedSongsData?.items?.map((item, index) => (
+              <SongItem
+                key={`${item.track.id}-${index}`}
+                id={item.track.id}
+                title={item.track.name}
+                artist={item.track.artists.map(artist => artist.name).join(', ')}
+                cover={item.track.album.images[0]?.url || ''}
+                link={item.track.external_urls.spotify}
+              />
+            ))}
           </View>
         );
     }
   };
 
-  useEffect(() => {
-    // Optionally, fetch real user data from Spotify API here
-    const fetchProfileData = async () => {
-      const response = await fetch(`${API_URL}/profile`)
+  // Fetch profile data only when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      const fetchProfileData = async () => {
+        if (!JWT) return;
+        
+        try {
+          const response = await fetch(`${API_URL}/api/profile`, {
+            headers: {
+              Authorization: `Bearer ${JWT}`,
+            },
+          });
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Profile fetch error:', response.status, errorText);
+            return;
+          }
+          
+          const data = await response.json();
+          console.log('Profile data:', data);
+          setProfileData(data);
+        } catch (error) {
+          console.error('Failed to fetch profile:', error);
+        }
+      };
+      
+      fetchProfileData();
+    }, [JWT])
+  );
+
+  const fetchHistory = async () => {
+    if (!JWT) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/spotify/recently-played`, {
+        headers: {
+          Authorization: `Bearer ${JWT}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('History fetch error:', response.status, errorText);
+        return;
+      }
+
+      const data = await response.json();
+      setHistoryData(data);
+    } catch (error) {
+      console.error('Failed to fetch listening history:', error);
+    } finally {
+      setLoading(false);
     }
-    fetchProfileData();
-  }, []);
+  };
+
+  const fetchPlaylists = async () => {
+    if (!JWT) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/spotify/playlists`, {
+        headers: {
+          Authorization: `Bearer ${JWT}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Playlists fetch error:', response.status, errorText);
+        return;
+      }
+
+      const data = await response.json();
+      console.log('Playlists data:', data);
+      setPlaylistsData(data);
+    } catch (error) {
+      console.error('Failed to fetch playlists:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const fetchLikedSongs = async () => {
+    if (!JWT) return;
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/spotify/liked-songs`, {
+        headers: {
+          Authorization: `Bearer ${JWT}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Liked songs fetch error:', response.status, errorText);
+        return;
+      }
+
+      const data = await response.json();
+      console.log('Liked songs data:', data);
+      setLikedSongsData(data);
+    } catch (error) {
+      console.error('Failed to fetch liked songs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    switch(activeTab) {
+      case 'history':
+        fetchHistory();
+        break;
+      case 'playlists':
+        fetchPlaylists();
+        break;
+      case 'liked':
+        fetchLikedSongs();
+        break;
+    }
+  }, [activeTab, JWT]);
 
   return (
     <ThemedView style={styles.container}>
@@ -110,17 +256,14 @@ export default function ProfileScreen() {
           {/* Profile Picture */}
           <View style={styles.profileImageContainer}>
             <Image
-              source={{ uri: '' }}
+              source={{ uri: profileData ? profileData.images[0].url : '' }}
               style={styles.profileImage}
             />
           </View>
 
           {/* Name & Username */}
           <ThemedText style={styles.profileName} lightColor="#fff" darkColor="#fff">
-            kellen
-          </ThemedText>
-          <ThemedText style={styles.username} lightColor="rgba(255,255,255,0.8)" darkColor="rgba(255,255,255,0.8)">
-            kellen
+            {profileData ? profileData.display_name : 'Unknown'}
           </ThemedText>
 
           {/* Stats Row */}
@@ -315,50 +458,15 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.rounded,
     marginBottom: 16,
   },
-  songItem: {
-    flexDirection: 'row',
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 60,
     gap: 12,
   },
-  songCover: {
-    width: 56,
-    height: 56,
-    borderRadius: 4,
-  },
-  songInfo: {
-    flex: 1,
-  },
-  songTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  songArtist: {
-    fontSize: 13,
-    opacity: 0.7,
-  },
-  playlistItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    gap: 12,
-  },
-  playlistCover: {
-    width: 56,
-    height: 56,
-    borderRadius: 8,
-  },
-  playlistInfo: {
-    flex: 1,
-  },
-  playlistName: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  playlistCount: {
-    fontSize: 13,
+  loadingText: {
+    fontSize: 14,
     opacity: 0.7,
   },
 });

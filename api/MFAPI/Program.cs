@@ -1,6 +1,3 @@
-// Load .env file
-DotNetEnv.Env.Load();
-
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -8,7 +5,18 @@ using System.Text;
 using MFAPI.Data;
 using MFAPI.Services;
 
+// Load .env file
+DotNetEnv.Env.Load();
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Add environment variables to configuration
+builder.Configuration.AddEnvironmentVariables();
+
+// Debug: Log Spotify configuration
+Console.WriteLine($"Spotify ClientId: {builder.Configuration["Spotify:ClientId"]}");
+Console.WriteLine($"Spotify ClientSecret: {builder.Configuration["Spotify:ClientSecret"]}");
+Console.WriteLine($"Spotify RedirectUri: {builder.Configuration["Spotify:RedirectUri"]}");
 
 // Add services to the container.
 builder.Services.AddControllers();

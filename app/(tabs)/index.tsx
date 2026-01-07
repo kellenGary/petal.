@@ -1,21 +1,57 @@
+import SongItem from "@/components/song-item";
+import { API_URL } from "@/constants/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
+import { useEffect, useState } from "react";
 import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
 import MapView from "react-native-maps";
 
 export default function HomeScreen() {
-  const { accessToken } = useAuth();
+  const { jwtToken } = useAuth();
+
+  const [recommendations, setRecommendations] = useState([]);
+
+  useEffect(() => {
+    const fetchRecommendedTracks = async () => {
+      if (!jwtToken) return;
+
+      try {
+        const response = await fetch(`${API_URL}/api/spotify/new-releases`, {
+          method: "GET",
+          headers: { Authorization: `Bearer ${jwtToken}` },
+        });
+        
+        console.log("Response status:", response.status);
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("API error:", errorText);
+          return;
+        }
+        
+        const data = await response.json();
+        setRecommendations(data.albums);
+      } catch (error) {
+        console.error("Error fetching recommended tracks:", error);
+      }
+
+    }
+    console.log("Access Token:", jwtToken);
+    fetchRecommendedTracks();
+  }, [jwtToken]);
 
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={["#4887cfff", "#63e857ff", "#abafeaff", "#ffffffff"]}
+        colors={["#ffffffff", "#ffffffff", "#e8e8e8ff", "#ffffffff"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={styles.containerGradient}
       >
-        <ScrollView style={styles.scrollView}>
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Hero */}
           <View style={styles.headerGradient}>
             {/* Hero Header */}
@@ -29,9 +65,7 @@ export default function HomeScreen() {
 
             <View style={styles.headerContentContainer}>
               {/* Map Section */}
-              <MapView
-                style={styles.map}
-              />
+              <MapView style={styles.map} />
 
               {/* Live Listeners Section */}
               <View style={styles.activeContainer}>
@@ -42,23 +76,43 @@ export default function HomeScreen() {
                   style={styles.activeScrollView}
                   contentContainerStyle={styles.activeScrollContent}
                 >
-                    <View style={styles.listenerCard}>
-                      <View style={styles.songBubble}>
-                        <Text style={styles.songName} numberOfLines={2}>
-                          songName
-                        </Text>
-                      </View>
-                      <View style={styles.profileImageContainer}>
-                        <Image
-                          source={{ uri: "https://i.pravatar.cc/300?img=12" }}
-                          style={styles.profileImage}
-                        />
-                      </View>
-                      <Text style={styles.username}>Name</Text>
+                  <View style={styles.listenerCard}>
+                    <View style={styles.songBubble}>
+                      <Text style={styles.songName} numberOfLines={2}>
+                        songName
+                      </Text>
                     </View>
+                    <View style={styles.profileImageContainer}>
+                      <Image
+                        source={{ uri: "https://i.pravatar.cc/300?img=12" }}
+                        style={styles.profileImage}
+                      />
+                    </View>
+                    <Text style={styles.username}>Name</Text>
+                  </View>
                 </ScrollView>
               </View>
             </View>
+          </View>
+          <View>
+            <Text>New Releases</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.activeScrollView}
+              contentContainerStyle={styles.activeScrollContent}
+            >
+              {recommendations.map((album: any) => (
+                <SongItem 
+                  key={album.id}
+                  id={album.id}
+                  title={album.name}
+                  artist={album.artists.map((artist: any) => artist.name).join(', ')}
+                  cover={album.images[0]?.url || ''}
+                  link={album.external_urls.spotify}
+                />
+              ))}
+            </ScrollView>
           </View>
         </ScrollView>
       </LinearGradient>

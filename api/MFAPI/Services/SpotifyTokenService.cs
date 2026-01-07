@@ -9,6 +9,7 @@ namespace MFAPI.Services;
 public interface ISpotifyTokenService
 {
     Task<string> GetValidAccessTokenAsync(int userId);
+    Task<string> ForceRefreshTokenAsync(int userId);
     Task RefreshTokenAsync(User user);
 }
 
@@ -40,12 +41,38 @@ public class SpotifyTokenService : ISpotifyTokenService
             throw new InvalidOperationException($"User with ID {userId} not found");
         }
 
+        if (string.IsNullOrEmpty(user.SpotifyAccessToken))
+        {
+            _logger.LogError("User {UserId} has no Spotify access token", userId);
+            throw new InvalidOperationException("User has no Spotify access token. Please re-authenticate.");
+        }
+
         // Check if token is expired or will expire in the next 5 minutes
         if (user.TokenExpiresAt <= DateTime.UtcNow.AddMinutes(5))
         {
+            _logger.LogInformation("Token expired for user {UserId}. Attempting refresh...", userId);
             await RefreshTokenAsync(user);
         }
 
+        if (string.IsNullOrEmpty(user.SpotifyAccessToken))
+        {
+            _logger.LogError("Access token is still null after refresh for user {UserId}", userId);
+            throw new InvalidOperationException("Failed to obtain valid Spotify access token");
+        }
+
+        return user.SpotifyAccessToken;
+    }
+
+    public async Task<string> ForceRefreshTokenAsync(int userId)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        
+        if (user == null)
+        {
+            throw new InvalidOperationException($"User with ID {userId} not found");
+        }
+
+        await RefreshTokenAsync(user);
         return user.SpotifyAccessToken;
     }
 

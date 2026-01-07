@@ -3,8 +3,8 @@ import { Platform } from 'react-native';
 
 const API_URL = __DEV__ 
   ? Platform.OS === 'ios' 
-    ? 'http://localhost:5000' 
-    : 'http://10.0.2.2:5000'
+    ? 'http://localhost:5164' 
+    : 'http://10.0.2.2:5164'
   : 'https://your-production-api.com';
 
 export interface User {
@@ -34,7 +34,6 @@ class ApiService {
   }
 
   async login(): Promise<string> {
-    // Return the login URL for WebBrowser to open
     return `${API_URL}/api/auth/login`;
   }
 
@@ -114,9 +113,47 @@ class ApiService {
     return await response.json();
   }
 
+  async getPlaylist(playlistId: string): Promise<any> {
+    const response = await this.makeAuthenticatedRequest(`/api/spotify/playlists/${playlistId}`);
+    return await response.json();
+  }
+
+  async getPlaylistSongs(playlistId: string): Promise<any> {
+    return this.getPlaylist(playlistId);
+  }
+
   async getRecentlyPlayed(): Promise<any> {
     const response = await this.makeAuthenticatedRequest('/api/spotify/recently-played');
     return await response.json();
+  }
+
+  async getCurrentlyPlaying(): Promise<any> {
+    const response = await this.makeAuthenticatedRequest('/api/spotify/currently-playing');
+    return await response.json();
+  }
+
+  async play(): Promise<void> {
+    await this.makeAuthenticatedRequest('/api/spotify/play', { method: 'POST' });
+  }
+
+  async pause(): Promise<void> {
+    await this.makeAuthenticatedRequest('/api/spotify/pause', { method: 'POST' });
+  }
+
+  async next(): Promise<void> {
+    await this.makeAuthenticatedRequest('/api/spotify/next', { method: 'POST' });
+  }
+
+  async previous(): Promise<void> {
+    await this.makeAuthenticatedRequest('/api/spotify/previous', { method: 'POST' });
+  }
+
+  async setShuffle(state: boolean): Promise<void> {
+    await this.makeAuthenticatedRequest(`/api/spotify/shuffle?state=${state}`, { method: 'POST' });
+  }
+
+  async setRepeat(state: 'track' | 'context' | 'off'): Promise<void> {
+    await this.makeAuthenticatedRequest(`/api/spotify/repeat?state=${state}`, { method: 'POST' });
   }
 }
 

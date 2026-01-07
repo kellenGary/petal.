@@ -9,7 +9,7 @@ using MFAPI.Services;
 namespace MFAPI.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("[controller]")]
 public class AuthController : ControllerBase
 {
     private readonly IHttpClientFactory _httpClientFactory;
@@ -30,42 +30,6 @@ public class AuthController : ControllerBase
         _configuration = configuration;
         _context = context;
         _jwtService = jwtService;
-    }
-
-
-    [HttpGet("login")]
-    public IActionResult Login()
-    {
-        var clientId = _configuration["Spotify:ClientId"];
-        var redirectUri = _configuration["Spotify:RedirectUri"];
-        
-        var scope = string.Join(" ", new[]
-        {
-            "user-read-private",
-            "user-read-email",
-            "user-read-recently-played",
-            "user-library-read",
-            "playlist-read-private",
-            "playlist-read-collaborative"
-        });
-
-        var state = Guid.NewGuid().ToString("N");
-
-        var queryParams = new Dictionary<string, string>
-        {
-            { "response_type", "code" },
-            { "client_id", clientId },
-            { "scope", scope },
-            { "redirect_uri", redirectUri },
-            { "state", state }
-        };
-
-        var queryString = string.Join("&", queryParams.Select(kvp => 
-            $"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value)}"));
-
-        var authUrl = $"https://accounts.spotify.com/authorize?{queryString}";
-
-        return Redirect(authUrl);
     }
 
     [HttpGet("callback")]

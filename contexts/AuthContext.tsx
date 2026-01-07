@@ -1,5 +1,11 @@
 import * as SecureStore from "expo-secure-store";
-import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
 interface User {
   id: number;
@@ -34,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const token = await SecureStore.getItemAsync("jwt_token");
       const userStr = await SecureStore.getItemAsync("user");
-      
+
       setJwtToken(token);
       if (userStr) {
         setUser(JSON.parse(userStr));
@@ -70,14 +76,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider 
-      value={{ 
+    <AuthContext.Provider
+      value={{
         user,
-        jwtToken, 
-        isLoading, 
+        jwtToken,
+        isLoading,
         isAuthenticated: jwtToken !== null,
-        signIn, 
-        signOut 
+        signIn,
+        signOut,
       }}
     >
       {children}
@@ -92,4 +98,3 @@ export function useAuth() {
   }
   return context;
 }
-
