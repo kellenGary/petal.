@@ -1,41 +1,40 @@
-import { API_URL } from '@/constants/auth';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useFocusEffect } from '@react-navigation/native';
-import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useCallback, useEffect, useState } from 'react';
+import api from "@/services/api";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useFocusEffect } from "@react-navigation/native";
+import { Image } from "expo-image";
+import { RelativePathString, router } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
+  Text,
   View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import PlaylistItem from '@/components/playlist-item';
-import SongItem from '@/components/song-item';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Colors, Fonts } from '@/constants/theme';
-import { useAuth } from '@/contexts/AuthContext';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import PlaylistItem from "@/components/playlist-item";
+import SongItem from "@/components/song-item";
+import { Colors, Fonts } from "@/constants/theme";
+import { useAuth } from "@/contexts/AuthContext";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 
-type TabType = 'history' | 'playlists' | 'liked';
+type TabType = "history" | "playlists" | "liked";
 
 export default function ProfileScreen() {
-  const insets = useSafeAreaInsets();
-  const JWT = useAuth().jwtToken;
+  const { isAuthenticated } = useAuth();
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const [activeTab, setActiveTab] = useState<TabType>('history');
-  const [profileData, setProfileData] = useState(null);
-  const [historyData, setHistoryData] = useState(null);
-  const [playlistsData, setPlaylistsData] = useState(null);
-  const [likedSongsData, setLikedSongsData] = useState(null);
-  const [loading , setLoading] = useState(false);
+  const isDark = colorScheme === "dark";
+  const insets = useSafeAreaInsets();
+  const [activeTab, setActiveTab] = useState<TabType>("history");
+  const [profileData, setProfileData] = useState<any>(null);
+  const [historyData, setHistoryData] = useState<any>(null);
+  const [playlistsData, setPlaylistsData] = useState<any>(null);
+  const [likedSongsData, setLikedSongsData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
-  const colors = Colors[isDark ? 'dark' : 'light'];
+  const colors = Colors[isDark ? "dark" : "light"];
 
   const formatNumber = (num: number): string => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -47,59 +46,62 @@ export default function ProfileScreen() {
     if (loading) {
       return (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#1DB954" />
-          <ThemedText style={styles.loadingText}>Loading...</ThemedText>
+          <ActivityIndicator size="large" color="#538ce9ff" />
         </View>
       );
     }
 
     switch (activeTab) {
-      case 'history':
+      case "history":
         return (
           <View style={styles.contentSection}>
-            <ThemedText style={styles.sectionTitle}>Recently Played</ThemedText>
-            {historyData?.items?.map((item, index) => (
+            <Text style={styles.sectionTitle}>Recently Played</Text>
+            {historyData?.items?.map((item: any, index: number) => (
               <SongItem
                 key={`${item.track.id}-${index}`}
                 id={item.track.id}
                 title={item.track.name}
-                artist={item.track.artists.map(artist => artist.name).join(', ')}
-                cover={item.track.album.images[0]?.url || ''}
-                link={item.track.external_urls.spotify}
+                artist={item.track.artists
+                  .map((artist: any) => artist.name)
+                  .join(", ")}
+                cover={item.track.album.images[0]?.url || ""}
+                link={`/${"song"}/${item.track.id}` as RelativePathString}
               />
             ))}
           </View>
         );
-      case 'playlists':
+      case "playlists":
         return (
           <View style={styles.contentSection}>
-            <ThemedText style={styles.sectionTitle}>Your Playlists</ThemedText>
+            <Text style={styles.sectionTitle}>Your Playlists</Text>
             {playlistsData?.items
-              ?.filter((playlist) => playlist.owner.id === profileData?.id)
-              .map((playlist) => (
+              ?.filter((playlist: any) => playlist.owner.id === profileData?.spotifyId)
+              .map((playlist: any) => (
                 <PlaylistItem
                   key={playlist.id}
                   id={playlist.id}
                   name={playlist.name}
                   songCount={playlist.tracks.total}
-                  cover={playlist.images[0]?.url || ''}
-                  link={`/playlist/${playlist.id}`}
+                  cover={playlist.images[0]?.url || ""}
+                  link={`/${"playlist"}/${playlist.id}` as RelativePathString}
                 />
               ))}
           </View>
         );
-      case 'liked':
+      case "liked":
         return (
           <View style={styles.contentSection}>
-            <ThemedText style={styles.sectionTitle}>Liked Songs</ThemedText>
-            {likedSongsData?.items?.map((item, index) => (
+            <Text style={styles.sectionTitle}>Liked Songs</Text>
+            {likedSongsData?.items?.map((item: any, index: number) => (
               <SongItem
                 key={`${item.track.id}-${index}`}
                 id={item.track.id}
                 title={item.track.name}
-                artist={item.track.artists.map(artist => artist.name).join(', ')}
-                cover={item.track.album.images[0]?.url || ''}
-                link={item.track.external_urls.spotify}
+                artist={item.track.artists
+                  .map((artist: any) => artist.name)
+                  .join(", ")}
+                cover={item.track.album.images[0]?.url || ""}
+                link={`/${"song"}/${item.track.id}` as RelativePathString}
               />
             ))}
           </View>
@@ -111,239 +113,212 @@ export default function ProfileScreen() {
   useFocusEffect(
     useCallback(() => {
       const fetchProfileData = async () => {
-        if (!JWT) return;
-        
+        if (!isAuthenticated) return;
+
         try {
-          const response = await fetch(`${API_URL}/api/profile`, {
-            headers: {
-              Authorization: `Bearer ${JWT}`,
-            },
-          });
-          
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Profile fetch error:', response.status, errorText);
-            return;
-          }
-          
-          const data = await response.json();
-          console.log('Profile data:', data);
+          const data = await api.getAppProfile();
           setProfileData(data);
         } catch (error) {
-          console.error('Failed to fetch profile:', error);
+          console.error("Failed to fetch profile:", error);
         }
       };
-      
+
       fetchProfileData();
-    }, [JWT])
+    }, [isAuthenticated])
   );
 
   const fetchHistory = async () => {
-    if (!JWT) return;
+    if (!isAuthenticated) return;
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/spotify/recently-played`, {
-        headers: {
-          Authorization: `Bearer ${JWT}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('History fetch error:', response.status, errorText);
-        return;
-      }
-
-      const data = await response.json();
+      const data = await api.getRecentlyPlayed();
       setHistoryData(data);
     } catch (error) {
-      console.error('Failed to fetch listening history:', error);
+      console.error("Failed to fetch listening history:", error);
     } finally {
       setLoading(false);
     }
   };
 
   const fetchPlaylists = async () => {
-    if (!JWT) return;
+    if (!isAuthenticated) return;
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/spotify/playlists`, {
-        headers: {
-          Authorization: `Bearer ${JWT}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Playlists fetch error:', response.status, errorText);
-        return;
-      }
-
-      const data = await response.json();
-      console.log('Playlists data:', data);
+      const data = await api.getPlaylists();
       setPlaylistsData(data);
     } catch (error) {
-      console.error('Failed to fetch playlists:', error);
+      console.error("Failed to fetch playlists:", error);
     } finally {
       setLoading(false);
     }
   };
-  
+
   const fetchLikedSongs = async () => {
-    if (!JWT) return;
+    if (!isAuthenticated) return;
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/spotify/liked-songs`, {
-        headers: {
-          Authorization: `Bearer ${JWT}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Liked songs fetch error:', response.status, errorText);
-        return;
-      }
-
-      const data = await response.json();
-      console.log('Liked songs data:', data);
+      const data = await api.getLikedSongs();
       setLikedSongsData(data);
     } catch (error) {
-      console.error('Failed to fetch liked songs:', error);
+      console.error("Failed to fetch liked songs:", error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    switch(activeTab) {
-      case 'history':
+    switch (activeTab) {
+      case "history":
         fetchHistory();
         break;
-      case 'playlists':
+      case "playlists":
         fetchPlaylists();
         break;
-      case 'liked':
+      case "liked":
         fetchLikedSongs();
         break;
     }
-  }, [activeTab, JWT]);
+  }, [activeTab, isAuthenticated]);
 
   return (
-    <ThemedView style={styles.container}>
+    <View style={styles.container}>
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         bounces={true}
+        contentContainerStyle={{ paddingTop: insets.top }}
       >
-        {/* Gradient Header */}
-        <LinearGradient
-          colors={['#667eea', '#764ba2']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={[styles.headerGradient, { paddingTop: insets.top }]}
-        >
+        <View style={styles.headerContainer}>
           {/* Settings Button */}
           <View style={styles.headerActions}>
             <View style={styles.spacer} />
-            <Pressable style={styles.settingsButton}>
-              <MaterialIcons name="settings" size={24} color="#fff" />
+            <Pressable
+              style={styles.settingsButton}
+              onPress={() => router.push("/(settings)")}
+            >
+              <MaterialIcons name="settings" size={24} color="#000000ff" />
             </Pressable>
           </View>
 
           {/* Profile Picture */}
-          <View style={styles.profileImageContainer}>
-            <Image
-              source={{ uri: profileData ? profileData.images[0].url : '' }}
-              style={styles.profileImage}
-            />
+          <View style={{ alignItems: "center" }}>
+            <View style={styles.profileImageContainer}>
+              <Image
+                source={{ uri: profileData ? profileData.profileImageUrl : "" }}
+                style={styles.profileImage}
+              />
+            </View>
+
+            {/* Name & Username */}
+            <Text style={styles.profileName} lightColor="#fff" darkColor="#fff">
+              {profileData ? profileData.displayName : "Unknown"}
+            </Text>
+            <Text>{profileData ? profileData.handle : "unknown"}</Text>
           </View>
-
-          {/* Name & Username */}
-          <ThemedText style={styles.profileName} lightColor="#fff" darkColor="#fff">
-            {profileData ? profileData.display_name : 'Unknown'}
-          </ThemedText>
-
           {/* Stats Row */}
           <View style={styles.statsContainer}>
             <Pressable style={styles.statItem}>
-              <ThemedText style={styles.statNumber} lightColor="#fff" darkColor="#fff">
+              <Text
+                style={styles.statNumber}
+                lightColor="#fff"
+                darkColor="#fff"
+              >
                 {formatNumber(0)}
-              </ThemedText>
-              <ThemedText style={styles.statLabel} lightColor="rgba(255,255,255,0.7)" darkColor="rgba(255,255,255,0.7)">
+              </Text>
+              <Text
+                style={styles.statLabel}
+                lightColor="rgba(255,255,255,0.7)"
+                darkColor="rgba(255,255,255,0.7)"
+              >
                 Followers
-              </ThemedText>
+              </Text>
             </Pressable>
             <Pressable style={styles.statItem}>
-              <ThemedText style={styles.statNumber} lightColor="#fff" darkColor="#fff">
+              <Text
+                style={styles.statNumber}
+                lightColor="#fff"
+                darkColor="#fff"
+              >
                 {formatNumber(0)}
-              </ThemedText>
-              <ThemedText style={styles.statLabel} lightColor="rgba(255,255,255,0.7)" darkColor="rgba(255,255,255,0.7)">
+              </Text>
+              <Text
+                style={styles.statLabel}
+                lightColor="rgba(255,255,255,0.7)"
+                darkColor="rgba(255,255,255,0.7)"
+              >
                 Following
-              </ThemedText>
+              </Text>
             </Pressable>
             <Pressable style={styles.statItem}>
-              <ThemedText style={styles.statNumber} lightColor="#fff" darkColor="#fff">
+              <Text
+                style={styles.statNumber}
+                lightColor="#fff"
+                darkColor="#fff"
+              >
                 {formatNumber(0)}
-              </ThemedText>
-              <ThemedText style={styles.statLabel} lightColor="rgba(255,255,255,0.7)" darkColor="rgba(255,255,255,0.7)">
+              </Text>
+              <Text
+                style={styles.statLabel}
+                lightColor="rgba(255,255,255,0.7)"
+                darkColor="rgba(255,255,255,0.7)"
+              >
                 Unique Songs
-              </ThemedText>
+              </Text>
             </Pressable>
           </View>
-        </LinearGradient>
+        </View>
 
         {/* Tab Navigation */}
-        <View style={[styles.tabContainer, { backgroundColor: colors.background }]}>
+        <View
+          style={[styles.tabContainer, { backgroundColor: colors.background }]}
+        >
           <Pressable
-            style={[styles.tab, activeTab === 'history' && styles.activeTab]}
-            onPress={() => setActiveTab('history')}
+            style={[styles.tab, activeTab === "history" && styles.activeTab]}
+            onPress={() => setActiveTab("history")}
           >
-            <ThemedText
+            <Text
               style={[
                 styles.tabText,
-                activeTab === 'history' && styles.activeTabText,
+                activeTab === "history" && styles.activeTabText,
               ]}
             >
               History
-            </ThemedText>
+            </Text>
           </Pressable>
           <Pressable
-            style={[styles.tab, activeTab === 'playlists' && styles.activeTab]}
-            onPress={() => setActiveTab('playlists')}
+            style={[styles.tab, activeTab === "playlists" && styles.activeTab]}
+            onPress={() => setActiveTab("playlists")}
           >
-            <ThemedText
+            <Text
               style={[
                 styles.tabText,
-                activeTab === 'playlists' && styles.activeTabText,
+                activeTab === "playlists" && styles.activeTabText,
               ]}
             >
               Playlists
-            </ThemedText>
+            </Text>
           </Pressable>
           <Pressable
-            style={[styles.tab, activeTab === 'liked' && styles.activeTab]}
-            onPress={() => setActiveTab('liked')}
+            style={[styles.tab, activeTab === "liked" && styles.activeTab]}
+            onPress={() => setActiveTab("liked")}
           >
-            <ThemedText
+            <Text
               style={[
                 styles.tabText,
-                activeTab === 'liked' && styles.activeTabText,
+                activeTab === "liked" && styles.activeTabText,
               ]}
             >
               Liked
-            </ThemedText>
+            </Text>
           </Pressable>
         </View>
 
         {/* Content Section */}
-        <ThemedView style={styles.contentContainer}>
-          {renderContent()}
-        </ThemedView>
+        <View style={styles.contentContainer}>{renderContent()}</View>
       </ScrollView>
-    </ThemedView>
+    </View>
   );
 }
 
@@ -354,16 +329,17 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  headerGradient: {
+  headerContainer: {
     paddingBottom: 24,
-    alignItems: 'center',
+    alignItems: "center",
+    gap: 8,
   },
   headerActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 16,
   },
   spacer: {
     width: 40,
@@ -372,9 +348,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   profileImageContainer: {
     marginTop: 8,
@@ -385,11 +361,11 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: "#fff",
   },
   profileName: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontFamily: Fonts.rounded,
     marginBottom: 4,
     color: "black",
@@ -397,53 +373,57 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 14,
     marginBottom: 20,
-    color: "black"
+    color: "black",
   },
   statsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
     paddingHorizontal: 20,
+    gap: 12,
   },
   statItem: {
-    alignItems: 'center',
-    paddingHorizontal: 20,
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
   },
   statNumber: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontFamily: Fonts.rounded,
-    color: "black"
+    color: "black",
   },
   statLabel: {
     fontSize: 12,
     marginTop: 2,
-    color: "black"
+    color: "black",
   },
   tabContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(128,128,128,0.2)',
+    borderBottomColor: "rgba(128,128,128,0.2)",
   },
   tab: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 14,
     gap: 6,
   },
   activeTab: {
     borderBottomWidth: 2,
-    borderBottomColor: '#1DB954',
+    borderBottomColor: "#538ce9ff",
   },
   tabText: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   activeTabText: {
-    color: '#1DB954',
-    fontWeight: '600',
+    color: "#538ce9ff",
+    fontWeight: "600",
   },
   contentContainer: {
     flex: 1,
@@ -454,14 +434,14 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontFamily: Fonts.rounded,
     marginBottom: 16,
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 60,
     gap: 12,
   },

@@ -10,6 +10,7 @@ export const SCOPES = [
   "user-library-read",
   "playlist-read-private",
   "playlist-read-collaborative",
+  "user-modify-playback-state",
   "user-read-playback-state",
   "user-read-currently-playing",
 ].join(" ");

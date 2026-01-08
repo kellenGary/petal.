@@ -1,8 +1,9 @@
-import { API_URL, CLIENT_ID, REDIRECT_URI, SCOPES } from "@/constants/auth";
+import { CLIENT_ID, REDIRECT_URI, SCOPES } from "@/constants/auth";
 import { useAuth } from "@/contexts/AuthContext";
-import { router } from "expo-router";
+import api from "@/services/api";
+import { LinearGradient } from "expo-linear-gradient";
 import * as WebBrowser from "expo-web-browser";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -12,26 +13,20 @@ export default function SignInScreen() {
   const handleSpotifyCallback = async (url: string) => {
     if (!url.startsWith("mf://callback")) return;
 
-    const urlParams = new URL(url.replace("mf://callback/?", "http://dummy.com/?"));
+    const urlParams = new URL(
+      url.replace("mf://callback/?", "http://dummy.com/?")
+    );
     const code = urlParams.searchParams.get("code");
     const state = urlParams.searchParams.get("state");
 
     if (!code) return;
 
     try {
-      const response = await fetch(
-        `${API_URL}/auth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || "")}`
-      );
+      const { token, user } = await api.handleAuthCallback(code, state || "");
 
-      if (!response.ok) {
-        throw new Error(`API returned ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data.token && data.user) {
-        await signIn(data.token, data.user);
-        router.replace("/(tabs)");
+      if (token && user) {
+        // Just sign in - the root layout will handle routing based on auth state
+        await signIn(token, user);
       } else {
         throw new Error("No token received");
       }
@@ -43,7 +38,9 @@ export default function SignInScreen() {
 
   async function handleLogin() {
     const state = Math.random().toString(36).substring(7);
-    const authUrl = `https://accounts.spotify.com/authorize?response_type=code&client_id=${CLIENT_ID}&scope=${encodeURIComponent(SCOPES)}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&state=${state}`;
+    const authUrl = `https://accounts.spotify.com/authorize?response_type=code&client_id=${CLIENT_ID}&scope=${encodeURIComponent(
+      SCOPES
+    )}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&state=${state}`;
 
     const result = await WebBrowser.openAuthSessionAsync(authUrl, REDIRECT_URI);
 
@@ -54,11 +51,44 @@ export default function SignInScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Welcome to MF</Text>
-      <Text style={styles.subtitle}>Connect your Spotify to get started</Text>
-      <Pressable style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Sign in with Spotify</Text>
-      </Pressable>
+      <LinearGradient
+        colors={["#538ce9ff", "#526ebaff","#6d8adb84", "#000000ff"]}
+        locations={[0, 0.3, 0.7, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <View style={styles.topSection}>
+        <Image
+          source={require("../../assets/images/icon.png")}
+          style={styles.icon}
+        />
+      </View>
+      <View style={styles.loginContent}>
+        <View style={styles.contentWrapper}>
+          <Text style={styles.title}>Welcome to MF</Text>
+          <Text style={styles.subtitle}>
+            Connect your Spotify account to discover friends and share music
+          </Text>
+          <Pressable 
+            style={({ pressed }) => [
+              styles.button,
+              pressed && styles.buttonPressed
+            ]} 
+            onPress={handleLogin}
+          >
+            <LinearGradient
+              colors={["#1DB954", "#1ed760"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.buttonGradient}
+            >
+              <Text style={styles.buttonText}>Continue with Spotify</Text>
+            </LinearGradient>
+          </Pressable>
+          <Text style={styles.footerText}>
+            By continuing, you agree to share your Spotify data
+          </Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -66,30 +96,112 @@ export default function SignInScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: "flex-end",
+    alignItems: "center",
+    backgroundColor: "transparent",
+  },
+  topSection: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
-    backgroundColor: "#fff",
+    paddingBottom: 60,
+  },
+  icon: {
+    width: 120,
+    height: 120,
+    marginBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  welcomeText: {
+    fontSize: 36,
+    fontWeight: "800",
+    color: "white",
+    marginBottom: 8,
+    letterSpacing: 0.5,
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  tagline: {
+    fontSize: 18,
+    fontWeight: "300",
+    color: "rgba(255, 255, 255, 0.8)",
+    letterSpacing: 2,
+    textTransform: "uppercase",
+  },
+  loginContent: {
+    backgroundColor: "rgba(0, 0, 0, 0.75)",
+    backdropFilter: "blur(10px)",
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    width: "100%",
+    paddingTop: 40,
+    paddingBottom: 50,
+    paddingHorizontal: 24,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+  },
+  contentWrapper: {
+    alignItems: "center",
+    width: "100%",
   },
   title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    marginBottom: 12,
+    fontSize: 28,
+    fontWeight: "700",
+    marginBottom: 16,
+    color: "white",
+    letterSpacing: 0.3,
   },
   subtitle: {
-    fontSize: 16,
-    color: "#666",
-    marginBottom: 40,
+    fontSize: 15,
+    color: "rgba(255, 255, 255, 0.7)",
+    marginBottom: 36,
+    textAlign: "center",
+    lineHeight: 22,
+    paddingHorizontal: 20,
   },
   button: {
-    backgroundColor: "#1DB954",
+    width: "100%",
+    maxWidth: 320,
+    borderRadius: 28,
+    overflow: "hidden",
+    shadowColor: "#1DB954",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  buttonPressed: {
+    transform: [{ scale: 0.98 }],
+    opacity: 0.9,
+  },
+  buttonGradient: {
     paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 24,
+    paddingVertical: 18,
+    alignItems: "center",
+    justifyContent: "center",
   },
   buttonText: {
     color: "white",
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 17,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  footerText: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.5)",
+    marginTop: 24,
+    textAlign: "center",
+    paddingHorizontal: 40,
+    lineHeight: 18,
   },
 });

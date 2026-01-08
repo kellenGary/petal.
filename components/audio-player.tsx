@@ -1,5 +1,6 @@
 import { usePlayback } from "@/contexts/playbackContext";
 import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -15,6 +16,7 @@ const { width } = Dimensions.get("window");
 const ALBUM_ART_SIZE = width * 0.85;
 
 export default function AudioPlayer() {
+  const [isLiked, setIsLiked] = useState(false);
   const { 
     playbackState, 
     currentProgressMs,
@@ -23,7 +25,7 @@ export default function AudioPlayer() {
     skipNext, 
     skipPrevious, 
     toggleShuffle, 
-    toggleRepeat 
+    toggleRepeat
   } = usePlayback();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -85,7 +87,9 @@ export default function AudioPlayer() {
             {artistNames}
           </Text>
         </View>
-        <Ionicons name="heart-outline" size={28} color={isDark ? "#fff" : "#000"} />
+        <Pressable onPress={() => setIsLiked(!isLiked)}>
+          <Ionicons name={isLiked ? "heart" : "heart-outline"} size={28} color={isLiked ? "#538ce9ff" : (isDark ? "#fff" : "#000")} />
+        </Pressable>
       </View>
 
       {/* Progress Bar */}
@@ -109,7 +113,7 @@ export default function AudioPlayer() {
           <Ionicons
             name="shuffle"
             size={28}
-            color={playbackState.shuffle_state ? "#1DB954" : (isDark ? "#aaa" : "#666")}
+            color={playbackState.shuffle_state ? "#538ce9ff" : (isDark ? "#aaa" : "#666")}
           />
         </Pressable>
 
@@ -133,7 +137,7 @@ export default function AudioPlayer() {
           <Ionicons
             name={playbackState.repeat_state === "track" ? "repeat" : "repeat"}
             size={28}
-            color={playbackState.repeat_state !== "off" ? "#1DB954" : (isDark ? "#aaa" : "#666")}
+            color={playbackState.repeat_state !== "off" ? "#538ce9ff" : (isDark ? "#aaa" : "#666")}
           />
           {playbackState.repeat_state === "track" && (
             <View style={styles.repeatBadge}>
@@ -141,13 +145,6 @@ export default function AudioPlayer() {
             </View>
           )}
         </Pressable>
-      </View>
-
-      {/* Footer Controls */}
-      <View style={styles.footerControls}>
-        <Ionicons name="desktop-outline" size={24} color={isDark ? "#aaa" : "#666"} />
-        <Ionicons name="share-outline" size={24} color={isDark ? "#aaa" : "#666"} />
-        <Ionicons name="list-outline" size={24} color={isDark ? "#aaa" : "#666"} />
       </View>
     </View>
   );
@@ -158,6 +155,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 25,
     paddingTop: 40,
+    height: "100%",
+    justifyContent: "flex-start",
+    alignContent: "center",
   },
   darkContainer: {
     backgroundColor: "#121212",
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   },
   progressBarFill: {
     height: "100%",
-    backgroundColor: "#1DB954",
+    backgroundColor: "#538ce9ff",
   },
   timeLabels: {
     flexDirection: "row",
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: -2,
     right: -2,
-    backgroundColor: "#1DB954",
+    backgroundColor: "#538ce9ff",
     borderRadius: 6,
     width: 12,
     height: 12,

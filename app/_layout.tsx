@@ -9,7 +9,7 @@ import { PlaybackProvider } from '@/contexts/playbackContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 function RootLayoutNav() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
@@ -17,15 +17,28 @@ function RootLayoutNav() {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    const inProfileSetup = segments[1] === 'profile-setup';
 
-    if (!isAuthenticated && !inAuthGroup) {
-      // Redirect to sign-in if not authenticated
-      router.replace('/(auth)');
-    } else if (isAuthenticated && inAuthGroup) {
-      // Redirect to home if authenticated
-      router.replace('/(tabs)');
+    if (!isAuthenticated) {
+      // Not authenticated - redirect to sign-in if not already there
+      if (!inAuthGroup) {
+        router.replace('/(auth)');
+      }
+    } else {
+      // Authenticated
+      if (!user?.hasCompletedProfile) {
+        // Profile not completed - redirect to setup if not already there
+        if (!inProfileSetup) {
+          router.replace('/(auth)/profile-setup');
+        }
+      } else {
+        // Profile completed - redirect away from auth group
+        if (inAuthGroup) {
+          router.replace('/(tabs)');
+        }
+      }
     }
-  }, [isAuthenticated, segments, isLoading]);
+  }, [isAuthenticated, segments, isLoading, user]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
@@ -39,6 +52,14 @@ function RootLayoutNav() {
           sheetGrabberVisible: true,
         }} 
       />
+      <Stack.Screen
+        name="song/[id]"
+        options={{
+          presentation: 'formSheet',
+          sheetAllowedDetents: [1.0], 
+          sheetGrabberVisible: true,
+        }}
+      />
     </Stack>
   );
 }
@@ -51,7 +72,7 @@ export default function RootLayout() {
       <PlaybackProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <RootLayoutNav />
-          <StatusBar style="light" translucent backgroundColor="#667eea" />
+          <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} translucent />
         </ThemeProvider>
       </PlaybackProvider>
     </AuthProvider>

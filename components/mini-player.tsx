@@ -47,7 +47,7 @@ function AnimatedBar({ delay, initialHeight }: AnimatedBarProps) {
     <Animated.View
       style={[
         styles.equalizerBar,
-        { backgroundColor: "#1DB954" },
+        { backgroundColor: "#538ce9ff" },
         animatedStyle,
       ]}
     />
@@ -227,6 +227,6 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: "100%",
-    backgroundColor: "#1DB954",
+    backgroundColor: "#538ce9ff",
   },
 });

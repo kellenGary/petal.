@@ -1,14 +1,10 @@
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Image } from 'expo-image';
-import {
-    Pressable,
-    StyleSheet,
-    View,
-} from 'react-native';
-import { ThemedText } from './themed-text';
-import { RelativePathString, router } from 'expo-router';
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { Image } from "expo-image";
+import { Pressable, StyleSheet, View } from "react-native";
+import { ThemedText } from "./themed-text";
+import { RelativePathString, router } from "expo-router";
 
 interface SongItemProps {
   id: string;
@@ -16,16 +12,25 @@ interface SongItemProps {
   artist: string;
   cover: string;
   link: RelativePathString;
-  onPress?: () => void;
 }
 
-export default function SongItem({ id, title, artist, cover, onPress, link}: SongItemProps) {
+export default function SongItem({
+  id,
+  title,
+  artist,
+  cover,
+  link,
+}: SongItemProps) {
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const colors = Colors[isDark ? 'dark' : 'light'];
+  const isDark = colorScheme === "dark";
+  const colors = Colors[isDark ? "dark" : "light"];
+
+  const handlePress = () => {
+    router.push(link);
+  };
 
   return (
-    <Pressable key={id} style={styles.songItem} onPress={onPress}>
+    <Pressable key={id} style={styles.songItem} onPress={handlePress}>
       <Image source={{ uri: cover }} style={styles.songCover} />
       <View style={styles.songInfo}>
         <ThemedText style={styles.songTitle} numberOfLines={1}>
@@ -35,15 +40,20 @@ export default function SongItem({ id, title, artist, cover, onPress, link}: Son
           {artist}
         </ThemedText>
       </View>
-      <MaterialIcons name="play-circle-outline" size={28} color={colors.icon} onPress={() => router.push(link)} />
+      <MaterialIcons
+        name="play-circle-outline"
+        size={28}
+        color={colors.icon}
+        onPress={() => router.push(link)}
+      />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   songItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 10,
     gap: 12,
   },
@@ -57,7 +67,7 @@ const styles = StyleSheet.create({
   },
   songTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 2,
   },
   songArtist: {

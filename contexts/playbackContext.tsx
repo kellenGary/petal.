@@ -1,4 +1,5 @@
 import api from "@/services/api";
+import { useSegments } from "expo-router";
 import {
   createContext,
   ReactNode,
@@ -45,9 +46,13 @@ const PlaybackContext = createContext<PlaybackContextType | undefined>(undefined
 
 export function PlaybackProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, signOut } = useAuth();
+  const segments = useSegments();
   const [playbackState, setPlaybackState] = useState<PlaybackState | null>(null);
   const [currentProgressMs, setCurrentProgressMs] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Only fetch playback when user is on tabs pages
+  const isOnTabsPages = segments[0] === '(tabs)';
 
   const fetchPlaybackState = useCallback(async () => {
     if (!isAuthenticated) {
@@ -57,7 +62,8 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const data = await api.getCurrentlyPlaying();
+      setIsLoading(true);
+      const data = await api.getPlayerState();
       
       if (!data || data.item === undefined) {
         setPlaybackState(null);
@@ -65,7 +71,7 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Map Spotify's snake_case to our camelCase interface
+      // Map Spotify's snake_case (from /me/player) to our camelCase interface
       const mappedState: PlaybackState = {
         isPlaying: data.is_playing,
         item: data.item,
@@ -82,10 +88,15 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
 
       if (error?.message === "Session expired") {
         await signOut();
+      } else if (error?.message?.includes("Network request failed")) {
+        // Don't clear state on network errors, just log and keep trying
+        console.warn("Network error fetching playback state, will retry");
+      } else {
+        setPlaybackState(null);
+        setCurrentProgressMs(0);
       }
-      
-      setPlaybackState(null);
-      setCurrentProgressMs(0);
+    } finally {
+      setIsLoading(false);
     }
   }, [isAuthenticated, signOut]);
 
@@ -161,20 +172,20 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
     }
   }, [playbackState, fetchPlaybackState]);
 
-  // Initial fetch and polling setup
+  // Initial fetch and polling setup - only when on tabs pages
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && isOnTabsPages) {
       // Fetch immediately
-      setIsLoading(true);
-      fetchPlaybackState().finally(() => setIsLoading(false));
+      fetchPlaybackState();
 
       // Poll for updates every 5 seconds
       const interval = setInterval(fetchPlaybackState, 5000);
       return () => clearInterval(interval);
-    } else {
+    } else if (!isAuthenticated) {
       setPlaybackState(null);
+      setIsLoading(false);
     }
-  }, [isAuthenticated, fetchPlaybackState]);
+  }, [isAuthenticated, isOnTabsPages, fetchPlaybackState]);
 
   return (
     <PlaybackContext.Provider

@@ -1,4 +1,3 @@
-import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 const API_URL = __DEV__ 
@@ -11,26 +10,29 @@ export interface User {
   id: number;
   spotifyId: string;
   displayName: string | null;
+  handle: string | null;
+  bio: string | null;
   email: string | null;
   profileImageUrl: string | null;
+  hasCompletedProfile: boolean;
 }
 
 export interface AuthResponse {
   token: string;
+  isNewUser: boolean;
   user: User;
 }
 
 class ApiService {
-  private async getToken(): Promise<string | null> {
-    return await SecureStore.getItemAsync('jwt_token');
+  private token: string | null = null;
+  private onUnauthorized?: () => void;
+
+  setAuthToken(token: string | null) {
+    this.token = token;
   }
 
-  private async saveToken(token: string): Promise<void> {
-    await SecureStore.setItemAsync('jwt_token', token);
-  }
-
-  private async clearToken(): Promise<void> {
-    await SecureStore.deleteItemAsync('jwt_token');
+  setUnauthorizedHandler(handler: () => void) {
+    this.onUnauthorized = handler;
   }
 
   async login(): Promise<string> {
@@ -47,34 +49,14 @@ class ApiService {
     }
 
     const data: AuthResponse = await response.json();
-    await this.saveToken(data.token);
-    await SecureStore.setItemAsync('user', JSON.stringify(data.user));
-    
     return data;
-  }
-
-  async logout(): Promise<void> {
-    await this.clearToken();
-    await SecureStore.deleteItemAsync('user');
-  }
-
-  async getCurrentUser(): Promise<User | null> {
-    const userStr = await SecureStore.getItemAsync('user');
-    return userStr ? JSON.parse(userStr) : null;
-  }
-
-  async isAuthenticated(): Promise<boolean> {
-    const token = await this.getToken();
-    return token !== null;
   }
 
   private async makeAuthenticatedRequest(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<Response> {
-    const token = await this.getToken();
-
-    if (!token) {
+    if (!this.token) {
       throw new Error('Not authenticated');
     }
 
@@ -82,14 +64,16 @@ class ApiService {
       ...options,
       headers: {
         ...options.headers,
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${this.token}`,
         'Content-Type': 'application/json',
       },
     });
 
     // If unauthorized, clear token and throw
     if (response.status === 401) {
-      await this.clearToken();
+      if (this.onUnauthorized) {
+        this.onUnauthorized();
+      }
       throw new Error('Session expired');
     }
 
@@ -99,6 +83,19 @@ class ApiService {
   // Profile endpoints
   async getProfile(): Promise<any> {
     const response = await this.makeAuthenticatedRequest('/api/profile');
+    return await response.json();
+  }
+
+  async getAppProfile(): Promise<User> {
+    const response = await this.makeAuthenticatedRequest('/api/profile/app');
+    return await response.json();
+  }
+
+  async updateAppProfile(payload: Partial<Pick<User, 'displayName' | 'handle' | 'bio'>>): Promise<User> {
+    const response = await this.makeAuthenticatedRequest('/api/profile/app', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
     return await response.json();
   }
 
@@ -122,6 +119,11 @@ class ApiService {
     return this.getPlaylist(playlistId);
   }
 
+  async getSongDetails(songId: string): Promise<any> {
+    const response = await this.makeAuthenticatedRequest(`/api/spotify/songs/${songId}`);
+    return await response.json();
+  }
+
   async getRecentlyPlayed(): Promise<any> {
     const response = await this.makeAuthenticatedRequest('/api/spotify/recently-played');
     return await response.json();
@@ -129,6 +131,21 @@ class ApiService {
 
   async getCurrentlyPlaying(): Promise<any> {
     const response = await this.makeAuthenticatedRequest('/api/spotify/currently-playing');
+    return await response.json();
+  }
+
+  async getPlayerState(): Promise<any> {
+    const response = await this.makeAuthenticatedRequest('/api/spotify/player-state');
+    return await response.json();
+  }
+
+  async getNewReleases(): Promise<any> {
+    const response = await this.makeAuthenticatedRequest('/api/spotify/new-releases');
+    return await response.json();
+  }
+
+  async getLikedSongs(): Promise<any> {
+    const response = await this.makeAuthenticatedRequest('/api/spotify/liked-songs');
     return await response.json();
   }
 

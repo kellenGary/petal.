@@ -1,5 +1,5 @@
-import SignInScreen from ".";
+import { Slot } from "expo-router";
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  return <><SignInScreen /></>;
+export default function AuthLayout() {
+  return <Slot />;
 }

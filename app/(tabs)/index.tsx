@@ -1,6 +1,6 @@
 import SongItem from "@/components/song-item";
-import { API_URL } from "@/constants/auth";
 import { useAuth } from "@/contexts/AuthContext";
+import api from "@/services/api";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
@@ -8,37 +8,24 @@ import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
 import MapView from "react-native-maps";
 
 export default function HomeScreen() {
-  const { jwtToken } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const [recommendations, setRecommendations] = useState([]);
 
   useEffect(() => {
     const fetchRecommendedTracks = async () => {
-      if (!jwtToken) return;
+      if (!isAuthenticated) return;
 
       try {
-        const response = await fetch(`${API_URL}/api/spotify/new-releases`, {
-          method: "GET",
-          headers: { Authorization: `Bearer ${jwtToken}` },
-        });
-        
-        console.log("Response status:", response.status);
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("API error:", errorText);
-          return;
-        }
-        
-        const data = await response.json();
+        const data = await api.getNewReleases();
         setRecommendations(data.albums);
       } catch (error) {
         console.error("Error fetching recommended tracks:", error);
       }
+    };
 
-    }
-    console.log("Access Token:", jwtToken);
     fetchRecommendedTracks();
-  }, [jwtToken]);
+  }, [isAuthenticated]);
 
   return (
     <View style={styles.container}>
@@ -60,7 +47,7 @@ export default function HomeScreen() {
                 source={require("../../assets/images/black-icon.png")}
                 style={styles.headerImage}
               />
-              <Text style={styles.headerText}>Welcome Kellen</Text>
+              <Text style={styles.headerText}>Welcome {user?.displayName}</Text>
             </View>
 
             <View style={styles.headerContentContainer}>
@@ -147,7 +134,7 @@ const styles = StyleSheet.create({
     height: 96,
   },
   headerText: {
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: "600",
     color: "black",
   },

@@ -12,7 +12,6 @@ interface PlaylistItemProps {
   songCount: number;
   cover: string;
   link: RelativePathString;
-  onPress?: () => void;
 }
 
 export default function PlaylistItem({
@@ -20,7 +19,6 @@ export default function PlaylistItem({
   name,
   songCount,
   cover,
-  onPress,
   link,
 }: PlaylistItemProps) {
   const colorScheme = useColorScheme();
@@ -28,11 +26,7 @@ export default function PlaylistItem({
   const colors = Colors[isDark ? "dark" : "light"];
 
   const handlePress = () => {
-    if (onPress) {
-      onPress();
-    } else if (link) {
       router.push(link);
-    }
   };
 
   return (
