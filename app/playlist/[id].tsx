@@ -1,6 +1,6 @@
 import SongItem from "@/components/song-item";
 import { Colors } from "@/constants/theme";
-import api from "@/services/api";
+import spotifyApi from "@/services/spotifyApi";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import Entypo from '@expo/vector-icons/Entypo';
@@ -30,7 +30,7 @@ export default function PlaylistScreen() {
     async function fetchPlaylist() {
       setLoading(true);
       try {
-        const fetchedPlaylist = await api.getPlaylistSongs(id as string);
+        const fetchedPlaylist = await spotifyApi.getPlaylistSongs(id as string);
         setPlaylist(fetchedPlaylist);
         setTracks(fetchedPlaylist.tracks.items);
       } catch (error) {

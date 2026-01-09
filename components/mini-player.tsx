@@ -3,7 +3,6 @@ import { usePlayback } from "@/contexts/playbackContext";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { useRouter } from "expo-router";
-import { useEffect } from "react";
 import {
   Image,
   Pressable,
@@ -12,47 +11,8 @@ import {
   useColorScheme,
   View,
 } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from "react-native-reanimated";
+import EqualizerBar from "./equalizer-bar";
 
-interface AnimatedBarProps {
-  delay: number;
-  initialHeight: number;
-}
-
-function AnimatedBar({ delay, initialHeight }: AnimatedBarProps) {
-  const height = useSharedValue(initialHeight);
-
-  useEffect(() => {
-    height.value = withRepeat(
-      withSequence(
-        withTiming(18, { duration: 400 + delay }),
-        withTiming(6, { duration: 300 + delay / 2 })
-      ),
-      -1,
-      true
-    );
-  }, []);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    height: height.value,
-  }));
-
-  return (
-    <Animated.View
-      style={[
-        styles.equalizerBar,
-        { backgroundColor: "#538ce9ff" },
-        animatedStyle,
-      ]}
-    />
-  );
-}
 
 export default function MiniPlayer() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -114,11 +74,7 @@ export default function MiniPlayer() {
             {/* Playback Status Indicator */}
             <View style={styles.playbackIndicator}>
               {playbackState.isPlaying ? (
-                <View style={styles.equalizerContainer}>
-                  <AnimatedBar delay={100} initialHeight={12} />
-                  <AnimatedBar delay={0} initialHeight={18} />
-                  <AnimatedBar delay={200} initialHeight={8} />
-                </View>
+                <EqualizerBar />
               ) : (
                 <Ionicons
                   name="pause"
@@ -210,16 +166,6 @@ const styles = StyleSheet.create({
     height: 32,
     justifyContent: "center",
     alignItems: "center",
-  },
-  equalizerContainer: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 2,
-    height: 20,
-  },
-  equalizerBar: {
-    width: 3,
-    borderRadius: 1.5,
   },
   progressContainer: {
     height: 2,

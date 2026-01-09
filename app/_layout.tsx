@@ -1,40 +1,48 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack, useRouter, useSegments } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import {
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider,
+} from "@react-navigation/native";
+import { Stack, useRouter, useSegments } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
+import "react-native-reanimated";
 
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import { PlaybackProvider } from '@/contexts/playbackContext';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors } from "@/constants/theme";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { PlaybackProvider } from "@/contexts/playbackContext";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 
 function RootLayoutNav() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const colors = Colors[isDark ? "dark" : "light"];
 
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = segments[0] === '(auth)';
-    const inProfileSetup = segments[1] === 'profile-setup';
+    const inAuthGroup = segments[0] === "(auth)";
+    const inProfileSetup = segments[1] === "profile-setup";
 
     if (!isAuthenticated) {
       // Not authenticated - redirect to sign-in if not already there
       if (!inAuthGroup) {
-        router.replace('/(auth)');
+        router.replace("/(auth)");
       }
     } else {
       // Authenticated
       if (!user?.hasCompletedProfile) {
         // Profile not completed - redirect to setup if not already there
         if (!inProfileSetup) {
-          router.replace('/(auth)/profile-setup');
+          router.replace("/(auth)/profile-setup");
         }
       } else {
         // Profile completed - redirect away from auth group
         if (inAuthGroup) {
-          router.replace('/(tabs)');
+          router.replace("/(tabs)");
         }
       }
     }
@@ -44,19 +52,20 @@ function RootLayoutNav() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="(auth)" />
-      <Stack.Screen 
-        name="player" 
-        options={{ 
-          presentation: 'formSheet',
-          sheetAllowedDetents: [1.0], 
+      <Stack.Screen
+        name="player"
+        options={{
+          presentation: "formSheet",
+          sheetAllowedDetents: [1.0],
           sheetGrabberVisible: true,
-        }} 
+          contentStyle: { backgroundColor: colors.background },
+        }}
       />
       <Stack.Screen
         name="song/[id]"
         options={{
-          presentation: 'formSheet',
-          sheetAllowedDetents: [1.0], 
+          presentation: "formSheet",
+          sheetAllowedDetents: [1.0],
           sheetGrabberVisible: true,
         }}
       />
@@ -70,9 +79,14 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <PlaybackProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <ThemeProvider
+          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+        >
           <RootLayoutNav />
-          <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} translucent />
+          <StatusBar
+            style={colorScheme === "dark" ? "light" : "dark"}
+            translucent
+          />
         </ThemeProvider>
       </PlaybackProvider>
     </AuthProvider>

@@ -1,4 +1,4 @@
-import api from "@/services/api";
+import playbackApi from "@/services/playbackApi";
 import { useSegments } from "expo-router";
 import {
   createContext,
@@ -52,7 +52,7 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
 
   // Only fetch playback when user is on tabs pages
-  const isOnTabsPages = segments[0] === '(tabs)';
+  const isOnTabsPages = segments[0] === '(tabs)' || segments[0] === "player";
 
   const fetchPlaybackState = useCallback(async () => {
     if (!isAuthenticated) {
@@ -63,7 +63,7 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
 
     try {
       setIsLoading(true);
-      const data = await api.getPlayerState();
+      const data = await playbackApi.getPlayerState();
       
       if (!data || data.item === undefined) {
         setPlaybackState(null);
@@ -106,12 +106,11 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
 
     const interval = setInterval(() => {
       setCurrentProgressMs((prev) => {
-        const next = prev + 1000;
+        const next = prev + 100;
         const duration = playbackState?.duration_ms || Infinity;
         return next > duration ? prev : next;
       });
-    }, 1000);
-
+    }, 100);
     return () => clearInterval(interval);
   }, [playbackState?.isPlaying, playbackState?.duration_ms, playbackState?.item?.name]);
 
@@ -120,9 +119,9 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
     
     try {
       if (playbackState.isPlaying) {
-        await api.pause();
+        await playbackApi.pause();
       } else {
-        await api.play();
+        await playbackApi.play();
       }
       // Optimistically update or just refresh
       await fetchPlaybackState();
@@ -133,7 +132,7 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
 
   const skipNext = useCallback(async () => {
     try {
-      await api.next();
+      await playbackApi.next();
       await fetchPlaybackState();
     } catch (error) {
       console.error("Skip next failed", error);
@@ -142,7 +141,7 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
 
   const skipPrevious = useCallback(async () => {
     try {
-      await api.previous();
+      await playbackApi.previous();
       await fetchPlaybackState();
     } catch (error) {
       console.error("Skip previous failed", error);
@@ -152,7 +151,7 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
   const toggleShuffle = useCallback(async () => {
     if (!playbackState) return;
     try {
-      await api.setShuffle(!playbackState.shuffle_state);
+      await playbackApi.setShuffle(!playbackState.shuffle_state);
       await fetchPlaybackState();
     } catch (error) {
       console.error("Toggle shuffle failed", error);
@@ -165,7 +164,7 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
       const modes: ('track' | 'context' | 'off')[] = ['off', 'context', 'track'];
       const currentIndex = modes.indexOf(playbackState.repeat_state as any);
       const nextMode = modes[(currentIndex + 1) % modes.length];
-      await api.setRepeat(nextMode);
+      await playbackApi.setRepeat(nextMode);
       await fetchPlaybackState();
     } catch (error) {
       console.error("Toggle repeat failed", error);
@@ -179,7 +178,7 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
       fetchPlaybackState();
 
       // Poll for updates every 5 seconds
-      const interval = setInterval(fetchPlaybackState, 5000);
+      const interval = setInterval(fetchPlaybackState, 1000);
       return () => clearInterval(interval);
     } else if (!isAuthenticated) {
       setPlaybackState(null);

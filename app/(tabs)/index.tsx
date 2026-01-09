@@ -1,13 +1,18 @@
 import SongItem from "@/components/song-item";
 import { useAuth } from "@/contexts/AuthContext";
-import api from "@/services/api";
+import spotifyApi from "@/services/spotifyApi";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
 import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
 import MapView from "react-native-maps";
+import { Colors, Fonts } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 
 export default function HomeScreen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const colors = Colors[isDark ? "dark" : "light"];
   const { isAuthenticated, user } = useAuth();
 
   const [recommendations, setRecommendations] = useState([]);
@@ -17,7 +22,7 @@ export default function HomeScreen() {
       if (!isAuthenticated) return;
 
       try {
-        const data = await api.getNewReleases();
+        const data = await spotifyApi.getNewReleases();
         setRecommendations(data.albums);
       } catch (error) {
         console.error("Error fetching recommended tracks:", error);
@@ -30,7 +35,7 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={["#ffffffff", "#ffffffff", "#e8e8e8ff", "#ffffffff"]}
+        colors={colors.gradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={styles.containerGradient}
@@ -44,10 +49,10 @@ export default function HomeScreen() {
             {/* Hero Header */}
             <View style={styles.headerContainer}>
               <Image
-                source={require("../../assets/images/black-icon.png")}
+                source={!isDark ? require("../../assets/images/black-icon.png") : require("../../assets/images/icon.png")}
                 style={styles.headerImage}
               />
-              <Text style={styles.headerText}>Welcome {user?.displayName}</Text>
+              <Text style={[styles.headerText, { color: colors.text }]}>Welcome {user?.displayName}</Text>
             </View>
 
             <View style={styles.headerContentContainer}>
@@ -56,7 +61,7 @@ export default function HomeScreen() {
 
               {/* Live Listeners Section */}
               <View style={styles.activeContainer}>
-                <Text style={styles.activeHeaderText}>Listening Now</Text>
+                <Text style={[styles.activeHeaderText, { color: colors.text }]}>Listening Now</Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -65,7 +70,7 @@ export default function HomeScreen() {
                 >
                   <View style={styles.listenerCard}>
                     <View style={styles.songBubble}>
-                      <Text style={styles.songName} numberOfLines={2}>
+                      <Text style={[styles.songName, { color: Colors.light.text }]} numberOfLines={2}>
                         songName
                       </Text>
                     </View>
@@ -75,14 +80,14 @@ export default function HomeScreen() {
                         style={styles.profileImage}
                       />
                     </View>
-                    <Text style={styles.username}>Name</Text>
+                    <Text style={[styles.username, { color: colors.text }]}>Name</Text>
                   </View>
                 </ScrollView>
               </View>
             </View>
           </View>
           <View>
-            <Text>New Releases</Text>
+            <Text style={[styles.activeHeaderText, { color: colors.text }]}>New Releases</Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -90,12 +95,14 @@ export default function HomeScreen() {
               contentContainerStyle={styles.activeScrollContent}
             >
               {recommendations.map((album: any) => (
-                <SongItem 
+                <SongItem
                   key={album.id}
                   id={album.id}
                   title={album.name}
-                  artist={album.artists.map((artist: any) => artist.name).join(', ')}
-                  cover={album.images[0]?.url || ''}
+                  artist={album.artists
+                    .map((artist: any) => artist.name)
+                    .join(", ")}
+                  cover={album.images[0]?.url || ""}
                   link={album.external_urls.spotify}
                 />
               ))}

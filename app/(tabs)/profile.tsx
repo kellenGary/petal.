@@ -1,4 +1,5 @@
-import api from "@/services/api";
+import spotifyApi from "@/services/spotifyApi";
+import profileApi from "@/services/profileApi";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useFocusEffect } from "@react-navigation/native";
 import { Image } from "expo-image";
@@ -19,14 +20,18 @@ import SongItem from "@/components/song-item";
 import { Colors, Fonts } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import AlbumItem from "@/components/album-item";
+import TabNavigation from "@/components/tab-navigation";
 
-type TabType = "history" | "playlists" | "liked";
+type TabType = string;
 
 export default function ProfileScreen() {
+  const insets = useSafeAreaInsets();
+
   const { isAuthenticated } = useAuth();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const insets = useSafeAreaInsets();
+  const colors = Colors[isDark ? "dark" : "light"];
   const [activeTab, setActiveTab] = useState<TabType>("history");
   const [profileData, setProfileData] = useState<any>(null);
   const [historyData, setHistoryData] = useState<any>(null);
@@ -34,12 +39,60 @@ export default function ProfileScreen() {
   const [likedSongsData, setLikedSongsData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  const colors = Colors[isDark ? "dark" : "light"];
-
   const formatNumber = (num: number): string => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
     return num.toString();
+  };
+
+  const groupConsecutiveAlbums = (items: any[]) => {
+    if (!items || items.length === 0) return [];
+
+    const grouped: any[] = [];
+    let currentAlbumGroup: any = null;
+
+    items.forEach((item, index) => {
+      const albumId = item.track?.album?.id;
+
+      if (currentAlbumGroup && currentAlbumGroup.albumId === albumId) {
+        // Add track to current album group
+        currentAlbumGroup.tracks.push({
+          id: item.track.id,
+          name: item.track.name,
+          artists: item.track.artists,
+          playedAt: item.played_at,
+        });
+      } else {
+        // Finalize previous group if it exists
+        if (currentAlbumGroup) {
+          grouped.push(currentAlbumGroup);
+        }
+
+        // Start new group
+        currentAlbumGroup = {
+          type: "album-group",
+          albumId: albumId,
+          albumName: item.track.album.name,
+          albumCover: item.track.album.images[0]?.url || "",
+          artists: item.track.artists,
+          tracks: [
+            {
+              id: item.track.id,
+              name: item.track.name,
+              artists: item.track.artists,
+              playedAt: item.played_at,
+            },
+          ],
+        };
+      }
+    });
+
+    // Add final group
+    if (currentAlbumGroup) {
+      grouped.push(currentAlbumGroup);
+    }
+
+    return grouped;
   };
 
   const renderContent = () => {
@@ -53,29 +106,51 @@ export default function ProfileScreen() {
 
     switch (activeTab) {
       case "history":
+        const groupedHistory = groupConsecutiveAlbums(historyData?.items || []);
+
         return (
-          <View style={styles.contentSection}>
-            <Text style={styles.sectionTitle}>Recently Played</Text>
-            {historyData?.items?.map((item: any, index: number) => (
-              <SongItem
-                key={`${item.track.id}-${index}`}
-                id={item.track.id}
-                title={item.track.name}
-                artist={item.track.artists
-                  .map((artist: any) => artist.name)
-                  .join(", ")}
-                cover={item.track.album.images[0]?.url || ""}
-                link={`/${"song"}/${item.track.id}` as RelativePathString}
-              />
-            ))}
+          <View>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Recently Played
+            </Text>
+            {groupedHistory.map((group: any, index: number) => {
+              if (group.tracks.length > 1) {
+                // Multiple consecutive tracks from same album - show as album group
+                return (
+                  <AlbumItem
+                    key={`album-group-${group.albumId}-${index}`}
+                    group={group}
+                  />
+                );
+              } else {
+                // Single track - show as regular song item
+                const track = group.tracks[0];
+                return (
+                  <SongItem
+                    key={`${track.id}-${index}`}
+                    id={track.id}
+                    title={track.name}
+                    artist={track.artists
+                      .map((artist: any) => artist.name)
+                      .join(", ")}
+                    cover={group.albumCover}
+                    link={`/song/${track.id}` as RelativePathString}
+                  />
+                );
+              }
+            })}
           </View>
         );
       case "playlists":
         return (
           <View style={styles.contentSection}>
-            <Text style={styles.sectionTitle}>Your Playlists</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Your Playlists
+            </Text>
             {playlistsData?.items
-              ?.filter((playlist: any) => playlist.owner.id === profileData?.spotifyId)
+              ?.filter(
+                (playlist: any) => playlist.owner.id === profileData?.spotifyId
+              )
               .map((playlist: any) => (
                 <PlaylistItem
                   key={playlist.id}
@@ -91,7 +166,9 @@ export default function ProfileScreen() {
       case "liked":
         return (
           <View style={styles.contentSection}>
-            <Text style={styles.sectionTitle}>Liked Songs</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Liked Songs
+            </Text>
             {likedSongsData?.items?.map((item: any, index: number) => (
               <SongItem
                 key={`${item.track.id}-${index}`}
@@ -114,9 +191,8 @@ export default function ProfileScreen() {
     useCallback(() => {
       const fetchProfileData = async () => {
         if (!isAuthenticated) return;
-
         try {
-          const data = await api.getAppProfile();
+          const data = await profileApi.getAppProfile();
           setProfileData(data);
         } catch (error) {
           console.error("Failed to fetch profile:", error);
@@ -129,10 +205,9 @@ export default function ProfileScreen() {
 
   const fetchHistory = async () => {
     if (!isAuthenticated) return;
-
     setLoading(true);
     try {
-      const data = await api.getRecentlyPlayed();
+      const data = await spotifyApi.getRecentlyPlayed();
       setHistoryData(data);
     } catch (error) {
       console.error("Failed to fetch listening history:", error);
@@ -143,10 +218,9 @@ export default function ProfileScreen() {
 
   const fetchPlaylists = async () => {
     if (!isAuthenticated) return;
-
     setLoading(true);
     try {
-      const data = await api.getPlaylists();
+      const data = await spotifyApi.getPlaylists();
       setPlaylistsData(data);
     } catch (error) {
       console.error("Failed to fetch playlists:", error);
@@ -159,7 +233,7 @@ export default function ProfileScreen() {
     if (!isAuthenticated) return;
     setLoading(true);
     try {
-      const data = await api.getLikedSongs();
+      const data = await spotifyApi.getLikedSongs();
       setLikedSongsData(data);
     } catch (error) {
       console.error("Failed to fetch liked songs:", error);
@@ -183,12 +257,17 @@ export default function ProfileScreen() {
   }, [activeTab, isAuthenticated]);
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        { paddingTop: insets.top },
+        { backgroundColor: colors.background },
+      ]}
+    >
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         bounces={true}
-        contentContainerStyle={{ paddingTop: insets.top }}
       >
         <View style={styles.headerContainer}>
           {/* Settings Button */}
@@ -198,7 +277,7 @@ export default function ProfileScreen() {
               style={styles.settingsButton}
               onPress={() => router.push("/(settings)")}
             >
-              <MaterialIcons name="settings" size={24} color="#000000ff" />
+              <MaterialIcons name="settings" size={24} color={colors.icon} />
             </Pressable>
           </View>
 
@@ -212,57 +291,41 @@ export default function ProfileScreen() {
             </View>
 
             {/* Name & Username */}
-            <Text style={styles.profileName} lightColor="#fff" darkColor="#fff">
+            <Text style={[styles.profileName, { color: colors.text }]}>
               {profileData ? profileData.displayName : "Unknown"}
             </Text>
-            <Text>{profileData ? profileData.handle : "unknown"}</Text>
+            <Text style={{ color: colors.text }}>
+              {profileData ? profileData.handle : "unknown"}
+            </Text>
           </View>
           {/* Stats Row */}
           <View style={styles.statsContainer}>
             <Pressable style={styles.statItem}>
-              <Text
-                style={styles.statNumber}
-                lightColor="#fff"
-                darkColor="#fff"
-              >
+              <Text style={[styles.statNumber, { color: colors.text }]}>
                 {formatNumber(0)}
               </Text>
               <Text
-                style={styles.statLabel}
-                lightColor="rgba(255,255,255,0.7)"
-                darkColor="rgba(255,255,255,0.7)"
+                style={[styles.statLabel, { color: colors.text, opacity: 0.7 }]}
               >
                 Followers
               </Text>
             </Pressable>
             <Pressable style={styles.statItem}>
-              <Text
-                style={styles.statNumber}
-                lightColor="#fff"
-                darkColor="#fff"
-              >
+              <Text style={[styles.statNumber, { color: colors.text }]}>
                 {formatNumber(0)}
               </Text>
               <Text
-                style={styles.statLabel}
-                lightColor="rgba(255,255,255,0.7)"
-                darkColor="rgba(255,255,255,0.7)"
+                style={[styles.statLabel, { color: colors.text, opacity: 0.7 }]}
               >
                 Following
               </Text>
             </Pressable>
             <Pressable style={styles.statItem}>
-              <Text
-                style={styles.statNumber}
-                lightColor="#fff"
-                darkColor="#fff"
-              >
+              <Text style={[styles.statNumber, { color: colors.text }]}>
                 {formatNumber(0)}
               </Text>
               <Text
-                style={styles.statLabel}
-                lightColor="rgba(255,255,255,0.7)"
-                darkColor="rgba(255,255,255,0.7)"
+                style={[styles.statLabel, { color: colors.text, opacity: 0.7 }]}
               >
                 Unique Songs
               </Text>
@@ -271,48 +334,12 @@ export default function ProfileScreen() {
         </View>
 
         {/* Tab Navigation */}
-        <View
-          style={[styles.tabContainer, { backgroundColor: colors.background }]}
-        >
-          <Pressable
-            style={[styles.tab, activeTab === "history" && styles.activeTab]}
-            onPress={() => setActiveTab("history")}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "history" && styles.activeTabText,
-              ]}
-            >
-              History
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[styles.tab, activeTab === "playlists" && styles.activeTab]}
-            onPress={() => setActiveTab("playlists")}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "playlists" && styles.activeTabText,
-              ]}
-            >
-              Playlists
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[styles.tab, activeTab === "liked" && styles.activeTab]}
-            onPress={() => setActiveTab("liked")}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "liked" && styles.activeTabText,
-              ]}
-            >
-              Liked
-            </Text>
-          </Pressable>
+        <View style={styles.tabContainer}>
+          <TabNavigation
+            tabs={["history", "playlists", "liked"]}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+          />
         </View>
 
         {/* Content Section */}
@@ -339,7 +366,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     width: "100%",
     paddingHorizontal: 16,
-    paddingTop: 16,
   },
   spacer: {
     width: 40,
@@ -368,12 +394,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontFamily: Fonts.rounded,
     marginBottom: 4,
-    color: "black",
   },
   username: {
     fontSize: 14,
     marginBottom: 20,
-    color: "black",
   },
   statsContainer: {
     flexDirection: "row",
@@ -393,50 +417,29 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     fontFamily: Fonts.rounded,
-    color: "black",
   },
   statLabel: {
     fontSize: 12,
     marginTop: 2,
-    color: "black",
   },
   tabContainer: {
     flexDirection: "row",
     borderBottomWidth: 1,
     borderBottomColor: "rgba(128,128,128,0.2)",
   },
-  tab: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    gap: 6,
-  },
-  activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: "#538ce9ff",
-  },
-  tabText: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  activeTabText: {
-    color: "#538ce9ff",
-    fontWeight: "600",
-  },
   contentContainer: {
     flex: 1,
     minHeight: 400,
   },
   contentSection: {
-    padding: 16,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
     fontFamily: Fonts.rounded,
-    marginBottom: 16,
+    marginBottom: 8,
+    paddingTop: 16,
+    paddingHorizontal: 16
   },
   loadingContainer: {
     flex: 1,

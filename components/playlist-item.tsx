@@ -53,11 +53,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 10,
     gap: 12,
+    paddingHorizontal: 16,
   },
   playlistCover: {
     width: 56,
     height: 56,
-    borderRadius: 8,
+    borderRadius: 4,
   },
   playlistInfo: {
     flex: 1,

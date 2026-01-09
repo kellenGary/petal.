@@ -1,19 +1,19 @@
 import { Colors } from "@/constants/theme";
 import api from "@/services/api";
+import playbackApi from "@/services/playbackApi";
+import spotifyApi from "@/services/spotifyApi";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   useColorScheme,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function SongModal() {
   const { id } = useLocalSearchParams();
@@ -23,7 +23,6 @@ export default function SongModal() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const colors = Colors[isDark ? "dark" : "light"];
-  const { bottom } = useSafeAreaInsets();
 
   const friends = useMemo(
     () => [
@@ -82,7 +81,7 @@ export default function SongModal() {
     async function fetchSong() {
       setLoading(true);
       try {
-        const fetchedSong = await api.getSongDetails(id as string);
+        const fetchedSong = await spotifyApi.getSongDetails(id as string);
         setSong(fetchedSong);
         console.log("Fetched song:", JSON.stringify(fetchedSong, null, 2));
       } catch (error) {
@@ -142,13 +141,21 @@ export default function SongModal() {
               marginBottom: 12,
             }}
           />
-          <View>
-            <Text style={[styles.playlistName, { color: colors.text }]}>
-              {song.name}
-            </Text>
-            <Text style={[styles.playlistName, { color: colors.text }]}>
-              {song.artists.map((artist: any) => artist.name).join(", ")}
-            </Text>
+          <View style={{ flex: 1, gap: 12 }}>
+            <View>
+              <Text style={[styles.songName, { color: colors.text }]}>
+                {song.name}
+              </Text>
+              <Text style={[styles.artistName, { color: colors.text }]}>
+                {song.artists.map((artist: any) => artist.name).join(", ")}
+              </Text>
+            </View>
+            <Pressable
+              style={styles.playButton}
+              onPress={() => playbackApi.playSong(id as string)}
+            >
+              <Text style={{ color: "white" }}>Play</Text>
+            </Pressable>
           </View>
         </View>
         <View style={styles.sheetContent}>
@@ -335,9 +342,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  playlistName: {
+  songName: {
     fontSize: 24,
     fontWeight: "bold",
+  },
+  artistName: {
+    fontSize: 18,
   },
   playlistStats: {
     fontSize: 14,
@@ -476,4 +486,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   trackList: {},
+  playButton: {
+    padding: 4,
+    width: "60%",
+    backgroundColor: "#538ce9ff",
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });

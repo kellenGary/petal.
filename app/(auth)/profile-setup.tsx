@@ -1,5 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
-import api, { User } from "@/services/api";
+import { User } from "@/services/api";
+import profileApi from "@/services/profileApi";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -38,8 +39,8 @@ export default function ProfileSetupScreen() {
     (async () => {
       try {
         const [sp, ap] = await Promise.all([
-          api.getProfile(),
-          api.getAppProfile(),
+          profileApi.getProfile(),
+          profileApi.getAppProfile(),
         ]);
         setSpotifyProfile(sp);
         setAppProfile(ap);
@@ -65,7 +66,7 @@ export default function ProfileSetupScreen() {
   async function onSave() {
     try {
       const payload = { displayName, handle, bio };
-      const updated = await api.updateAppProfile(payload);
+      const updated = await profileApi.updateAppProfile(payload);
       if (updated) {
         // Update the user in auth context so routing works
         await updateUser(updated);

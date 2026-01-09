@@ -1,6 +1,8 @@
+import { Colors } from "@/constants/theme";
 import { usePlayback } from "@/contexts/playbackContext";
+import spotifyApi from "@/services/spotifyApi";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -11,28 +13,48 @@ import {
   useColorScheme,
   View,
 } from "react-native";
-
 const { width } = Dimensions.get("window");
 const ALBUM_ART_SIZE = width * 0.85;
 
 export default function AudioPlayer() {
   const [isLiked, setIsLiked] = useState(false);
-  const { 
-    playbackState, 
+  const {
+    playbackState,
     currentProgressMs,
-    isLoading, 
-    togglePlay, 
-    skipNext, 
-    skipPrevious, 
-    toggleShuffle, 
-    toggleRepeat
+    isLoading,
+    togglePlay,
+    skipNext,
+    skipPrevious,
+    toggleShuffle,
+    toggleRepeat,
   } = usePlayback();
+
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const colors = Colors[isDark ? "dark" : "light"];
+
+  const track = playbackState.item;
+  const imageUrl = track.album?.images?.[0]?.url;
+  const artistNames = track.artists?.map((a: any) => a.name).join(", ");
+  const duration = playbackState.duration_ms || 1;
+  const progressPercent = (currentProgressMs / duration) * 100;
+
+  useEffect(() => {
+    const checkIfLiked = async () => {
+      try {
+        const response = await spotifyApi.checkIfSongIsLiked(track.id);
+        setIsLiked(response);
+      } catch (error) {
+        console.error("Error checking if song is liked:", error);
+      }
+    };
+
+    checkIfLiked();
+  }, [track.id]);
 
   if (isLoading && !playbackState) {
     return (
-      <View style={[styles.container, isDark && styles.darkContainer]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color="#1DB954" />
       </View>
     );
@@ -40,18 +62,13 @@ export default function AudioPlayer() {
 
   if (!playbackState || !playbackState.item) {
     return (
-      <View style={[styles.container, isDark && styles.darkContainer]}>
-        <Text style={[styles.text, isDark && styles.darkText]}>Not currently playing anything</Text>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Text style={[styles.text, { color: colors.text }]}>
+          Not currently playing anything
+        </Text>
       </View>
     );
   }
-
-  const track = playbackState.item;
-  const imageUrl = track.album?.images?.[0]?.url;
-  const artistNames = track.artists?.map((a: any) => a.name).join(", ");
-
-  const duration = playbackState.duration_ms || 1;
-  const progressPercent = (currentProgressMs / duration) * 100;
 
   const formatTime = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000);
@@ -60,8 +77,18 @@ export default function AudioPlayer() {
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
+  const handleLikePress = async (songId: string) => {
+    if (isLiked) {
+      await spotifyApi.unlikeSong(songId);
+      setIsLiked(false);
+    } else {
+      await spotifyApi.likeSong(songId);
+      setIsLiked(true);
+    }
+  };
+
   return (
-    <View style={[styles.container, isDark && styles.darkContainer]}>
+    <View style={[styles.container]}>
       {/* Album Art */}
       <View style={styles.albumArtContainer}>
         {imageUrl ? (
@@ -71,7 +98,7 @@ export default function AudioPlayer() {
             resizeMode="cover"
           />
         ) : (
-          <View style={[styles.albumArt, styles.placeholderArt]}>
+          <View style={[styles.albumArt, styles.placeholderArt, { backgroundColor: colors.background }]}>
             <Ionicons name="musical-notes" size={80} color="#666" />
           </View>
         )}
@@ -80,22 +107,34 @@ export default function AudioPlayer() {
       {/* Track Info */}
       <View style={styles.infoContainer}>
         <View style={styles.titleWrapper}>
-          <Text style={[styles.title, isDark && styles.darkText]} numberOfLines={1}>
+          <Text
+            style={[styles.title, isDark && styles.darkText]}
+            numberOfLines={1}
+          >
             {track.name}
           </Text>
-          <Text style={[styles.artist, isDark && styles.darkSubText]} numberOfLines={1}>
+          <Text
+            style={[styles.artist, isDark && styles.darkSubText]}
+            numberOfLines={1}
+          >
             {artistNames}
           </Text>
         </View>
-        <Pressable onPress={() => setIsLiked(!isLiked)}>
-          <Ionicons name={isLiked ? "heart" : "heart-outline"} size={28} color={isLiked ? "#538ce9ff" : (isDark ? "#fff" : "#000")} />
+        <Pressable onPress={() => handleLikePress(track.id)}>
+          <Ionicons
+            name={isLiked ? "heart" : "heart-outline"}
+            size={28}
+            color={isLiked ? "#538ce9ff" : isDark ? "#fff" : "#000"}
+          />
         </Pressable>
       </View>
 
       {/* Progress Bar */}
       <View style={styles.progressSection}>
         <View style={styles.progressBarBg}>
-          <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
+          <View
+            style={[styles.progressBarFill, { width: `${progressPercent}%` }]}
+          />
         </View>
         <View style={styles.timeLabels}>
           <Text style={[styles.timeText, isDark && styles.darkSubText]}>
@@ -113,12 +152,22 @@ export default function AudioPlayer() {
           <Ionicons
             name="shuffle"
             size={28}
-            color={playbackState.shuffle_state ? "#538ce9ff" : (isDark ? "#aaa" : "#666")}
+            color={
+              playbackState.shuffle_state
+                ? "#538ce9ff"
+                : isDark
+                ? "#aaa"
+                : "#666"
+            }
           />
         </Pressable>
 
         <Pressable onPress={skipPrevious}>
-          <Ionicons name="play-back" size={36} color={isDark ? "#fff" : "#000"} />
+          <Ionicons
+            name="play-back"
+            size={36}
+            color={isDark ? "#fff" : "#000"}
+          />
         </Pressable>
 
         <Pressable onPress={togglePlay} style={styles.playButton}>
@@ -130,14 +179,24 @@ export default function AudioPlayer() {
         </Pressable>
 
         <Pressable onPress={skipNext}>
-          <Ionicons name="play-forward" size={36} color={isDark ? "#fff" : "#000"} />
+          <Ionicons
+            name="play-forward"
+            size={36}
+            color={isDark ? "#fff" : "#000"}
+          />
         </Pressable>
 
         <Pressable onPress={toggleRepeat}>
           <Ionicons
             name={playbackState.repeat_state === "track" ? "repeat" : "repeat"}
             size={28}
-            color={playbackState.repeat_state !== "off" ? "#538ce9ff" : (isDark ? "#aaa" : "#666")}
+            color={
+              playbackState.repeat_state !== "off"
+                ? "#538ce9ff"
+                : isDark
+                ? "#aaa"
+                : "#666"
+            }
           />
           {playbackState.repeat_state === "track" && (
             <View style={styles.repeatBadge}>
@@ -152,15 +211,13 @@ export default function AudioPlayer() {
 
 const styles = StyleSheet.create({
   container: {
+    flexGrow: 1,
     flex: 1,
     paddingHorizontal: 25,
     paddingTop: 40,
     height: "100%",
     justifyContent: "flex-start",
     alignContent: "center",
-  },
-  darkContainer: {
-    backgroundColor: "#121212",
   },
   albumArtContainer: {
     width: ALBUM_ART_SIZE,
