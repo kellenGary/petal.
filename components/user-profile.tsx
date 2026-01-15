@@ -25,6 +25,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import FollowButton from "./follow-button";
 
 type TabType = string;
 
@@ -49,8 +50,6 @@ export default function UserProfile({ userId }: { userId?: number }) {
     followers: number;
     following: number;
   }>({ followers: 0, following: 0 });
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [followLoading, setFollowLoading] = useState(false);
 
   // Pagination state for each tab
   const [historyOffset, setHistoryOffset] = useState(0);
@@ -62,13 +61,10 @@ export default function UserProfile({ userId }: { userId?: number }) {
     recentTracks,
     likedTracks,
     playlists,
-    followedArtists,
     loading: contentLoading,
     fetchRecentTracks,
     fetchLikedTracks,
     fetchPlaylists,
-    fetchFollowedArtists,
-    refreshAll,
   } = useUserContent(userId);
 
   // Determine if viewing own profile or another user's profile
@@ -196,7 +192,9 @@ export default function UserProfile({ userId }: { userId?: number }) {
           <View style={styles.contentSection}>
             {playlists
               ?.filter((playlist: any) =>
-                isOwnProfile ? playlist.owner.id === profileData?.spotifyId : true
+                isOwnProfile
+                  ? playlist.owner.id === profileData?.spotifyId
+                  : true
               )
               .map((playlist: any) => (
                 <PlaylistItem
@@ -254,12 +252,6 @@ export default function UserProfile({ userId }: { userId?: number }) {
           if (profileUserId) {
             const counts = await followApi.getFollowCounts(profileUserId);
             setFollowCounts(counts);
-
-            // If viewing another user's profile, check if we're following them
-            if (userId) {
-              const followStatus = await followApi.getFollowStatus(userId);
-              setIsFollowing(followStatus);
-            }
           }
         } catch (error) {
           console.error("Failed to fetch profile:", error);
@@ -273,39 +265,23 @@ export default function UserProfile({ userId }: { userId?: number }) {
     }, [isAuthenticated, userId])
   );
 
-  const handleToggleFollow = useCallback(async () => {
-    if (!userId || followLoading) return;
-
-    setFollowLoading(true);
-    try {
-      const newStatus = await followApi.toggleFollow(userId, isFollowing);
-      setIsFollowing(newStatus);
-      // Update follower count
-      setFollowCounts((prev) => ({
-        ...prev,
-        followers: newStatus ? prev.followers + 1 : prev.followers - 1,
-      }));
-    } catch (error) {
-      console.error("Failed to toggle follow:", error);
-    } finally {
-      setFollowLoading(false);
-    }
-  }, [userId, isFollowing, followLoading]);
-
   // recent tracks are loaded via the useUserContent hook
 
   // playlists are loaded via the useUserContent hook; wrapper kept for compatibility
-  const loadPlaylists = useCallback(async (refresh = false) => {
-    if (!isAuthenticated) return;
-    setLoading(true);
-    try {
-      await fetchPlaylists(true);
-    } catch (e) {
-      console.error("Failed to fetch playlists:", e);
-    } finally {
-      setLoading(false);
-    }
-  }, [isAuthenticated, fetchPlaylists]);
+  const loadPlaylists = useCallback(
+    async (refresh = false) => {
+      if (!isAuthenticated) return;
+      setLoading(true);
+      try {
+        await fetchPlaylists(true);
+      } catch (e) {
+        console.error("Failed to fetch playlists:", e);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [isAuthenticated, fetchPlaylists]
+  );
 
   // liked tracks are managed by the useUserContent hook
 
@@ -346,7 +322,6 @@ export default function UserProfile({ userId }: { userId?: number }) {
     setLikedOffset(0);
     setActiveTab("history");
     setFollowCounts({ followers: 0, following: 0 });
-    setIsFollowing(false);
     // refresh hook-managed content for the new profile
     fetchRecentTracks(PAGE_SIZE, 0, true).catch(() => {});
     fetchLikedTracks(PAGE_SIZE, 0, true).catch(() => {});
@@ -363,7 +338,8 @@ export default function UserProfile({ userId }: { userId?: number }) {
         }
         break;
       case "playlists":
-        if (!playlists || playlists.length === 0) fetchPlaylists(true).catch(() => {});
+        if (!playlists || playlists.length === 0)
+          fetchPlaylists(true).catch(() => {});
         break;
       case "liked":
         if (!likedTracks || likedTracks.length === 0) {
@@ -424,11 +400,7 @@ export default function UserProfile({ userId }: { userId?: number }) {
                   style={styles.mapButton}
                   onPress={() => router.push("/listening-map")}
                 >
-                  <MaterialIcons
-                    name="map"
-                    size={24}
-                    color={colors.icon}
-                  />
+                  <MaterialIcons name="map" size={24} color={colors.icon} />
                 </Pressable>
                 <Pressable
                   style={styles.settingsButton}
@@ -465,34 +437,18 @@ export default function UserProfile({ userId }: { userId?: number }) {
 
             {/* Follow Button for other users' profiles */}
             {!isOwnProfile && (
-              <Pressable
-                style={[
-                  styles.profileFollowButton,
-                  {
-                    backgroundColor: isFollowing ? "transparent" : colors.tint,
-                    borderWidth: isFollowing ? 1 : 0,
-                    borderColor: colors.tint,
-                  },
-                ]}
-                onPress={handleToggleFollow}
-                disabled={followLoading}
-              >
-                {followLoading ? (
-                  <ActivityIndicator
-                    size="small"
-                    color={!isFollowing ? Colors.light.text : "#fff"}
-                  />
-                ) : (
-                  <Text
-                    style={[
-                      styles.profileFollowButtonText,
-                      { color: !isFollowing ? Colors.light.text : "#fff" },
-                    ]}
-                  >
-                    {isFollowing ? "Following" : "Follow"}
-                  </Text>
-                )}
-              </Pressable>
+              <FollowButton
+                userId={userId}
+                onFollowChange={(isFollowing) => {
+                  // Update follower count when follow status changes
+                  setFollowCounts((prev) => ({
+                    ...prev,
+                    followers: isFollowing
+                      ? prev.followers + 1
+                      : prev.followers - 1,
+                  }));
+                }}
+              />
             )}
           </View>
           {/* Stats Row */}
@@ -612,19 +568,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 20,
   },
-  profileFollowButton: {
-    marginTop: 12,
-    paddingHorizontal: 32,
-    paddingVertical: 10,
-    borderRadius: 20,
-    minWidth: 120,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  profileFollowButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
+
   statsContainer: {
     flexDirection: "row",
     alignItems: "center",

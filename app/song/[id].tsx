@@ -89,7 +89,6 @@ export default function SongModal() {
         const data = await response.json();
         // endpoint returns { track }
         setSong(data.track);
-        console.log("Fetched song:", JSON.stringify(data.track, null, 2));
       } catch (error) {
         console.error("Error fetching song:", error);
       } finally {

@@ -1,3 +1,5 @@
+import listeningHistoryApi from "@/services/listeningHistoryApi";
+import locationService from "@/services/locationService";
 import playbackApi from "@/services/playbackApi";
 import { useSegments } from "expo-router";
 import {
@@ -6,6 +8,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { useAuth } from "./AuthContext";
@@ -42,17 +45,24 @@ interface PlaybackContextType {
   toggleRepeat: () => Promise<void>;
 }
 
-const PlaybackContext = createContext<PlaybackContextType | undefined>(undefined);
+const PlaybackContext = createContext<PlaybackContextType | undefined>(
+  undefined
+);
 
 export function PlaybackProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, signOut } = useAuth();
   const segments = useSegments();
-  const [playbackState, setPlaybackState] = useState<PlaybackState | null>(null);
+  const [playbackState, setPlaybackState] = useState<PlaybackState | null>(
+    null
+  );
   const [currentProgressMs, setCurrentProgressMs] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Track the last synced Spotify track ID to avoid redundant sync calls
+  const lastSyncedSpotifyIdRef = useRef<string | null>(null);
+
   // Only fetch playback when user is on tabs pages
-  const isOnTabsPages = segments[0] === '(tabs)' || segments[0] === "player";
+  const isOnTabsPages = segments[0] === "(tabs)" || segments[0] === "player";
 
   const fetchPlaybackState = useCallback(async () => {
     if (!isAuthenticated) {
@@ -64,7 +74,7 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       const data = await playbackApi.getPlayerState();
-      
+
       if (!data || data.item === undefined) {
         setPlaybackState(null);
         setCurrentProgressMs(0);
@@ -83,6 +93,26 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
 
       setPlaybackState(mappedState);
       setCurrentProgressMs(mappedState.progress_ms);
+
+      // Add listening history for currently playing track with location
+      // Uses addCurrentlyPlaying instead of syncRecentlyPlayed to capture location in real-time
+      // (Spotify's Recently Played API has a delay that would miss the current location)
+      const currentSpotifyId = (data.item as any)?.id;
+      if (
+        currentSpotifyId &&
+        currentSpotifyId !== lastSyncedSpotifyIdRef.current
+      ) {
+        lastSyncedSpotifyIdRef.current = currentSpotifyId;
+
+        // Get current location for tracking (uses cached background location if available)
+        const coords = await locationService.getCoordinates();
+        await listeningHistoryApi.addCurrentlyPlaying(
+          currentSpotifyId,
+          mappedState.progress_ms,
+          coords?.latitude,
+          coords?.longitude
+        );
+      }
     } catch (error: any) {
       console.error("Failed to fetch playback state:", error);
 
@@ -112,11 +142,15 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
       });
     }, 100);
     return () => clearInterval(interval);
-  }, [playbackState?.isPlaying, playbackState?.duration_ms, playbackState?.item?.name]);
+  }, [
+    playbackState?.isPlaying,
+    playbackState?.duration_ms,
+    playbackState?.item?.name,
+  ]);
 
   const togglePlay = useCallback(async () => {
     if (!playbackState) return;
-    
+
     try {
       if (playbackState.isPlaying) {
         await playbackApi.pause();
@@ -161,7 +195,11 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
   const toggleRepeat = useCallback(async () => {
     if (!playbackState) return;
     try {
-      const modes: ('track' | 'context' | 'off')[] = ['off', 'context', 'track'];
+      const modes: ("track" | "context" | "off")[] = [
+        "off",
+        "context",
+        "track",
+      ];
       const currentIndex = modes.indexOf(playbackState.repeat_state as any);
       const nextMode = modes[(currentIndex + 1) % modes.length];
       await playbackApi.setRepeat(nextMode);

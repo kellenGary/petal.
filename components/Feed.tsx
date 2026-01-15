@@ -6,7 +6,7 @@ import React from "react";
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from "react-native";
 
 type FeedProps = {
-  ListHeaderComponent?: React.ReactElement | null;
+  ListHeaderComponent?: React.ReactNode | null; 
 };
 
 export default function Feed({ ListHeaderComponent = null }: FeedProps) {

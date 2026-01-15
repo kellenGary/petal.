@@ -9,10 +9,15 @@ namespace MFAPI.Services;
 public interface IListeningHistoryService
 {
     Task<int> SyncInitialListeningHistoryAsync(int userId, string accessToken);
-    Task<int> SyncRecentlyPlayedAsync(int userId, string accessToken, bool includeLocation = true);
+    Task<int> SyncRecentlyPlayedAsync(int userId, string accessToken, bool includeLocation = true, 
+        double? latitude = null, double? longitude = null);
     Task AddListeningHistoryAsync(int userId, int trackId, DateTime playedAt, int msPlayed, 
         string? contextUri = null, string? deviceType = null, double? latitude = null, double? longitude = null);
+    Task<AddCurrentlyPlayingResult> AddCurrentlyPlayingAsync(int userId, string accessToken, string spotifyTrackId,
+        DateTime playedAt, int progressMs, double? latitude = null, double? longitude = null);
 }
+
+public record AddCurrentlyPlayingResult(bool Success, string? TrackName = null, string? Error = null);
 
 public class ListeningHistoryService : IListeningHistoryService
 {
@@ -68,7 +73,8 @@ public class ListeningHistoryService : IListeningHistoryService
     /// Syncs recently played tracks since the last sync. Called periodically in the background.
     /// Includes location data by default.
     /// </summary>
-    public async Task<int> SyncRecentlyPlayedAsync(int userId, string accessToken, bool includeLocation = true)
+    public async Task<int> SyncRecentlyPlayedAsync(int userId, string accessToken, bool includeLocation = true,
+        double? latitude = null, double? longitude = null)
     {
         try
         {
@@ -85,7 +91,8 @@ public class ListeningHistoryService : IListeningHistoryService
             // If we've synced before, only get tracks played since last sync
             // Otherwise, get the 50 most recent
             var limit = syncState.RecentlyPlayedLastAt == null ? 50 : 50;
-            var (tracksAdded, latestPlayedAt) = await FetchAndSaveRecentlyPlayedAsync(userId, accessToken, limit, includeLocation, syncState.RecentlyPlayedLastAt);
+            var (tracksAdded, latestPlayedAt) = await FetchAndSaveRecentlyPlayedAsync(
+                userId, accessToken, limit, includeLocation, syncState.RecentlyPlayedLastAt, latitude, longitude);
             
             // Only update the sync timestamp if we actually added tracks
             // Use the latest played_at time from Spotify, not current time
@@ -147,12 +154,164 @@ public class ListeningHistoryService : IListeningHistoryService
         }
     }
 
+    /// <summary>
+    /// Adds listening history for the currently playing track using Spotify ID.
+    /// Fetches track details from Spotify, creates/updates DB records, and adds history with location.
+    /// Uses deduplication to prevent duplicate entries for the same track at the same time.
+    /// </summary>
+    public async Task<AddCurrentlyPlayingResult> AddCurrentlyPlayingAsync(int userId, string accessToken, string spotifyTrackId,
+        DateTime playedAt, int progressMs, double? latitude = null, double? longitude = null)
+    {
+        try
+        {
+            // Create deduplication key - using a time window to prevent rapid duplicates
+            // Round to nearest minute to allow some flexibility
+            var playedAtRounded = new DateTime(playedAt.Year, playedAt.Month, playedAt.Day, 
+                playedAt.Hour, playedAt.Minute, 0, DateTimeKind.Utc);
+            var dedupeKey = $"{userId}_{spotifyTrackId}_{playedAtRounded:O}";
+
+            // Check for existing entry with same dedupe key
+            var existingEntry = await _context.ListeningHistory
+                .FirstOrDefaultAsync(h => h.DedupeKey == dedupeKey);
+            
+            if (existingEntry != null)
+            {
+                _logger.LogDebug("[ListeningHistory] Duplicate entry for currently playing, skipping");
+                return new AddCurrentlyPlayingResult(true, "Already recorded");
+            }
+
+            // Check if track exists in DB
+            var existingTrack = await _context.Tracks
+                .FirstOrDefaultAsync(t => t.SpotifyId == spotifyTrackId);
+
+            Track dbTrack;
+            if (existingTrack != null)
+            {
+                dbTrack = existingTrack;
+            }
+            else
+            {
+                // Fetch track from Spotify
+                var client = _httpClientFactory.CreateClient();
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+                var response = await client.GetAsync($"https://api.spotify.com/v1/tracks/{spotifyTrackId}");
+                if (!response.IsSuccessStatusCode)
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("[ListeningHistory] Failed to fetch track from Spotify: {Error}", error);
+                    return new AddCurrentlyPlayingResult(false, Error: "Failed to fetch track from Spotify");
+                }
+
+                var content = await response.Content.ReadAsStringAsync();
+                var trackData = JsonSerializer.Deserialize<JsonElement>(content);
+
+                // Create album if needed
+                int? albumId = null;
+                if (trackData.TryGetProperty("album", out var albumProp) && albumProp.ValueKind != JsonValueKind.Null)
+                {
+                    var albumSpotifyId = albumProp.TryGetProperty("id", out var albumIdProp) ? albumIdProp.GetString() : null;
+                    if (!string.IsNullOrEmpty(albumSpotifyId))
+                    {
+                        var album = await _context.Albums.FirstOrDefaultAsync(a => a.SpotifyId == albumSpotifyId);
+                        if (album == null)
+                        {
+                            album = new Album
+                            {
+                                SpotifyId = albumSpotifyId,
+                                Name = albumProp.TryGetProperty("name", out var nameProp) ? nameProp.GetString() ?? "Unknown" : "Unknown",
+                                ImageUrl = albumProp.TryGetProperty("images", out var imagesProp) && imagesProp.GetArrayLength() > 0
+                                    ? (imagesProp[0].TryGetProperty("url", out var urlProp) ? urlProp.GetString() : null)
+                                    : null
+                            };
+                            _context.Albums.Add(album);
+                            await _context.SaveChangesAsync();
+                        }
+                        albumId = album.Id;
+                    }
+                }
+
+                // Create track
+                dbTrack = new Track
+                {
+                    SpotifyId = spotifyTrackId,
+                    Name = trackData.TryGetProperty("name", out var trackNameProp) ? trackNameProp.GetString() ?? "Unknown" : "Unknown",
+                    DurationMs = trackData.TryGetProperty("duration_ms", out var durationProp) ? durationProp.GetInt32() : 0,
+                    Explicit = trackData.TryGetProperty("explicit", out var explicitProp) && explicitProp.GetBoolean(),
+                    Popularity = trackData.TryGetProperty("popularity", out var popProp) ? popProp.GetInt32() : null,
+                    AlbumId = albumId
+                };
+                _context.Tracks.Add(dbTrack);
+                await _context.SaveChangesAsync();
+
+                // Create artist relationships
+                if (trackData.TryGetProperty("artists", out var artistsProp) && artistsProp.ValueKind == JsonValueKind.Array)
+                {
+                    int order = 0;
+                    foreach (var artistElement in artistsProp.EnumerateArray())
+                    {
+                        var artistSpotifyId = artistElement.TryGetProperty("id", out var artistIdProp) ? artistIdProp.GetString() : null;
+                        if (!string.IsNullOrEmpty(artistSpotifyId))
+                        {
+                            var artist = await _context.Artists.FirstOrDefaultAsync(a => a.SpotifyId == artistSpotifyId);
+                            if (artist == null)
+                            {
+                                artist = new Artist
+                                {
+                                    SpotifyId = artistSpotifyId,
+                                    Name = artistElement.TryGetProperty("name", out var artistNameProp) ? artistNameProp.GetString() ?? "Unknown" : "Unknown"
+                                };
+                                _context.Artists.Add(artist);
+                                await _context.SaveChangesAsync();
+                            }
+
+                            _context.TrackArtists.Add(new TrackArtist
+                            {
+                                TrackId = dbTrack.Id,
+                                ArtistId = artist.Id,
+                                ArtistOrder = order++
+                            });
+                        }
+                    }
+                }
+            }
+
+            // Create listening history entry
+            var listeningHistory = new ListeningHistory
+            {
+                UserId = userId,
+                TrackId = dbTrack.Id,
+                PlayedAt = playedAt,
+                MsPlayed = progressMs,
+                Source = ListeningSource.App,
+                DedupeKey = dedupeKey,
+                Latitude = latitude,
+                Longitude = longitude
+            };
+
+            _context.ListeningHistory.Add(listeningHistory);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("[ListeningHistory] Added currently playing for user {UserId}, track {TrackName} at ({Lat}, {Lng})",
+                userId, dbTrack.Name, latitude, longitude);
+
+            return new AddCurrentlyPlayingResult(true, dbTrack.Name);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ListeningHistory] Error adding currently playing for user {UserId}", userId);
+            return new AddCurrentlyPlayingResult(false, Error: ex.Message);
+        }
+    }
+
     private async Task<(int tracksAdded, DateTime? latestPlayedAt)> FetchAndSaveRecentlyPlayedAsync(
         int userId, 
         string accessToken, 
         int limit = 50, 
         bool includeLocation = true,
-        DateTime? sinceTime = null)
+        DateTime? sinceTime = null,
+        double? latitude = null,
+        double? longitude = null)
     {
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
@@ -226,7 +385,7 @@ public class ListeningHistoryService : IListeningHistoryService
                     }
                 }
 
-                if (await ProcessRecentlyPlayedItemAsync(userId, item, includeLocation))
+                if (await ProcessRecentlyPlayedItemAsync(userId, item, includeLocation, latitude, longitude))
                 {
                     totalAdded++;
                 }
@@ -258,7 +417,8 @@ public class ListeningHistoryService : IListeningHistoryService
         return (totalAdded, latestPlayedAt);
     }
 
-    private async Task<bool> ProcessRecentlyPlayedItemAsync(int userId, JsonElement item, bool includeLocation)
+    private async Task<bool> ProcessRecentlyPlayedItemAsync(int userId, JsonElement item, bool includeLocation,
+        double? latitude = null, double? longitude = null)
     {
         try
         {
@@ -533,7 +693,9 @@ public class ListeningHistoryService : IListeningHistoryService
                 MsPlayed = msPlayed,
                 ContextUri = contextUri,
                 Source = ListeningSource.SpotifyApi,
-                DedupeKey = dedupeKey
+                DedupeKey = dedupeKey,
+                Latitude = latitude,
+                Longitude = longitude
             };
 
             _context.ListeningHistory.Add(listeningHistory);

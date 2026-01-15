@@ -102,6 +102,69 @@ interface LocationHistoryResponse {
 }
 
 class ListeningHistoryService {
+  private lastTrackedSpotifyId: string | null = null;
+
+  /**
+   * Adds listening history for the currently playing track using Spotify ID.
+   * This enables real-time location tracking without waiting for Spotify's Recently Played API delay.
+   * 
+   * @param spotifyTrackId - The Spotify ID of the currently playing track
+   * @param progressMs - Current playback position in milliseconds
+   * @param latitude - Optional latitude for location tracking
+   * @param longitude - Optional longitude for location tracking
+   */
+  async addCurrentlyPlaying(
+    spotifyTrackId: string,
+    progressMs: number,
+    latitude?: number,
+    longitude?: number
+  ): Promise<{ trackName?: string; error?: string }> {
+    // Deduplicate on client side as well to reduce API calls
+    if (this.lastTrackedSpotifyId === spotifyTrackId) {
+      return { trackName: "Already tracked" };
+    }
+
+    const payload: {
+      spotifyTrackId: string;
+      progressMs: number;
+      playedAt: string;
+      latitude?: number;
+      longitude?: number;
+    } = {
+      spotifyTrackId,
+      progressMs,
+      playedAt: new Date().toISOString(),
+    };
+
+    if (latitude !== undefined && longitude !== undefined) {
+      payload.latitude = latitude;
+      payload.longitude = longitude;
+    }
+
+    const response = await api.makeAuthenticatedRequest(
+      "/api/listeninghistory/add-current",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return { error: errorData.error || response.statusText };
+    }
+
+    const data = await response.json();
+    this.lastTrackedSpotifyId = spotifyTrackId;
+    console.log("[ListeningHistory] Added currently playing:", data.trackName, latitude ? `at (${latitude}, ${longitude})` : "");
+    return { trackName: data.trackName };
+  }
+
+  private lastTrackedId: number | null = null;
+  
   /**
    * Adds a listening history entry with optional location data.
    * Call this when a track finishes playing in the app.
@@ -123,6 +186,9 @@ class ListeningHistoryService {
     latitude?: number,
     longitude?: number
   ): Promise<void> {
+    if (this.lastTrackedId === trackId) {
+      return;
+    }
     const payload: AddListeningHistoryPayload = {
       trackId,
       msPlayed,
@@ -149,6 +215,7 @@ class ListeningHistoryService {
         `Failed to add listening history: ${response.statusText}`
       );
     }
+    this.lastTrackedId = trackId;
   }
 
   /**
@@ -181,12 +248,25 @@ class ListeningHistoryService {
    * Syncs recently played tracks from Spotify.
    * Should be called periodically (every 1-5 minutes) in the background.
    * Returns the number of new tracks synced.
+   * 
+   * @param latitude - Optional current latitude for location tracking
+   * @param longitude - Optional current longitude for location tracking
    */
-  async syncRecentlyPlayed(): Promise<number> {
+  async syncRecentlyPlayed(latitude?: number, longitude?: number): Promise<number> {
+    const body: { latitude?: number; longitude?: number } = {};
+    if (latitude !== undefined && longitude !== undefined) {
+      body.latitude = latitude;
+      body.longitude = longitude;
+    }
+
     const response = await api.makeAuthenticatedRequest(
       "/api/listeninghistory/sync",
       {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
       }
     );
 

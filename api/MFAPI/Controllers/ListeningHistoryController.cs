@@ -78,7 +78,7 @@ public class ListeningHistoryController : ControllerBase
     }
 
     [HttpPost("sync")]
-    public async Task<IActionResult> SyncRecentlyPlayed()
+    public async Task<IActionResult> SyncRecentlyPlayed([FromBody] SyncRecentlyPlayedRequest? request)
     {
         try
         {
@@ -90,7 +90,12 @@ public class ListeningHistoryController : ControllerBase
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
 
-            var tracksAdded = await _listeningHistoryService.SyncRecentlyPlayedAsync(userId, accessToken, includeLocation: true);
+            var tracksAdded = await _listeningHistoryService.SyncRecentlyPlayedAsync(
+                userId, 
+                accessToken, 
+                includeLocation: true,
+                latitude: request?.Latitude,
+                longitude: request?.Longitude);
 
             return Ok(new
             {
@@ -101,6 +106,65 @@ public class ListeningHistoryController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error syncing recently played");
+            return StatusCode(500, new { error = "Internal server error" });
+        }
+    }
+
+    /// <summary>
+    /// Add listening history for the currently playing track using Spotify ID.
+    /// This enables real-time location tracking without waiting for Spotify's Recently Played API.
+    /// </summary>
+    [HttpPost("add-current")]
+    public async Task<IActionResult> AddCurrentlyPlaying([FromBody] AddCurrentlyPlayingRequest request)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            {
+                return Unauthorized(new { error = "Invalid token" });
+            }
+
+            if (string.IsNullOrEmpty(request.SpotifyTrackId))
+            {
+                return BadRequest(new { error = "Spotify track ID is required" });
+            }
+
+            // Validate location if provided
+            if (request.Latitude.HasValue || request.Longitude.HasValue)
+            {
+                if (!request.Latitude.HasValue || !request.Longitude.HasValue)
+                {
+                    return BadRequest(new { error = "Both latitude and longitude must be provided together" });
+                }
+
+                if (request.Latitude < -90 || request.Latitude > 90 || request.Longitude < -180 || request.Longitude > 180)
+                {
+                    return BadRequest(new { error = "Invalid latitude or longitude values" });
+                }
+            }
+
+            var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
+
+            var result = await _listeningHistoryService.AddCurrentlyPlayingAsync(
+                userId,
+                accessToken,
+                request.SpotifyTrackId,
+                request.PlayedAt ?? DateTime.UtcNow,
+                request.ProgressMs ?? 0,
+                request.Latitude,
+                request.Longitude);
+
+            if (!result.Success)
+            {
+                return BadRequest(new { error = result.Error });
+            }
+
+            return Ok(new { message = "Listening history recorded", trackName = result.TrackName });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding currently playing");
             return StatusCode(500, new { error = "Internal server error" });
         }
     }
@@ -369,6 +433,21 @@ public class AddListeningHistoryRequest
     public DateTime? PlayedAt { get; set; }
     public string? ContextUri { get; set; }
     public string? DeviceType { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+}
+
+public class SyncRecentlyPlayedRequest
+{
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+}
+
+public class AddCurrentlyPlayingRequest
+{
+    public required string SpotifyTrackId { get; set; }
+    public DateTime? PlayedAt { get; set; }
+    public int? ProgressMs { get; set; }
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
 }
