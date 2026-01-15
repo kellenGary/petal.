@@ -1,16 +1,22 @@
+import AlbumCard from "@/components/album-card";
+import PlaylistCard from "@/components/playlist-card";
+import SectionHeader from "@/components/section-header";
+import SongCard from "@/components/song-card";
+import UserCard from "@/components/user-card";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import dbApi from "@/services/dbApi";
 import followApi from "@/services/followApi";
-import { RelativePathString, router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ExploreScreen() {
   const [users, setUsers] = useState<any[]>([]);
   const [followStatus, setFollowStatus] = useState<Record<number, boolean>>({});
-  const [loadingFollows, setLoadingFollows] = useState<Record<number, boolean>>({});
+  const [loadingFollows, setLoadingFollows] = useState<Record<number, boolean>>(
+    {}
+  );
   const [trendingSongs, setTrendingSongs] = useState<any[]>([]);
   const [trendingAlbums, setTrendingAlbums] = useState<any[]>([]);
   const [trendingPlaylists, setTrendingPlaylists] = useState<any[]>([]);
@@ -45,163 +51,34 @@ export default function ExploreScreen() {
     fetchData();
   }, []);
 
-  const handleToggleFollow = useCallback(async (userId: number) => {
-    // Prevent multiple simultaneous requests for the same user
-    if (loadingFollows[userId]) return;
+  const handleToggleFollow = useCallback(
+    async (userId: number) => {
+      // Prevent multiple simultaneous requests for the same user
+      if (loadingFollows[userId]) return;
 
-    setLoadingFollows(prev => ({ ...prev, [userId]: true }));
+      setLoadingFollows((prev) => ({ ...prev, [userId]: true }));
 
-    try {
-      const currentStatus = followStatus[userId] || false;
-      const newStatus = await followApi.toggleFollow(userId, currentStatus);
-      setFollowStatus(prev => ({ ...prev, [userId]: newStatus }));
-    } catch (error) {
-      console.error("Error toggling follow:", error);
-    } finally {
-      setLoadingFollows(prev => ({ ...prev, [userId]: false }));
-    }
-  }, [followStatus, loadingFollows]);
-
-  const SectionHeader = ({ title }: { title: string }) => (
-    <View style={styles.sectionHeader}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>{title}</Text>
-      <Pressable>
-        <Text style={[styles.seeAll, { color: colors.tint }]}>See All</Text>
-      </Pressable>
-    </View>
-  );
-
-  const handleOpenProfile = (userId: string) => {
-    router.push(`/profile/${userId}` as RelativePathString);
-  }
-
-  const UserCard = ({ user }: { user: any }) => {
-    const isFollowing = followStatus[user.id] || false;
-    const isLoading = loadingFollows[user.id] || false;
-
-    return (
-      <Pressable
-        style={[styles.userCard, { borderColor: colors.tabIconDefault }]}
-        onPress={() => handleOpenProfile(user.id)}
-      >
-        <View
-          style={[styles.userAvatar, { backgroundColor: colors.tabIconDefault }]}
-        >
-          {user?.profileImageUrl ? (
-            <Image
-              source={{ uri: user.profileImageUrl }}
-              style={styles.userAvatarImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <Text style={styles.avatarText}>
-              {user?.displayName?.[0]?.toUpperCase() || "?"}
-            </Text>
-          )}
-        </View>
-        <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>
-          {user.displayName}
-        </Text>
-        <Pressable
-          style={[
-            styles.followButton,
-            {
-              backgroundColor: isFollowing ? "transparent" : colors.tint,
-              borderWidth: isFollowing ? 1 : 0,
-              borderColor: colors.tint,
-            },
-          ]}
-          onPress={(e) => {
-            e.stopPropagation();
-            handleToggleFollow(user.id);
-          }}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator size="small" color={!isFollowing ? Colors.light.text : "#fff"} />
-          ) : (
-            <Text
-              style={[
-                styles.followButtonText,
-                { color: !isFollowing ? Colors.light.text : "#fff" },
-              ]}
-              numberOfLines={1}
-            >
-              {isFollowing ? "Following" : "Follow"}
-            </Text>
-          )}
-        </Pressable>
-      </Pressable>
-    );
-  };
-
-  const SongCard = ({ song }: { song: any }) => (
-    <Pressable style={[styles.itemCard, { backgroundColor: colors.card }]}>
-      <View
-        style={[styles.itemImage, { backgroundColor: colors.tabIconDefault }]}
-      />
-      <View style={styles.itemInfo}>
-        <Text
-          style={[styles.itemTitle, { color: colors.text }]}
-          numberOfLines={1}
-        >
-          {song.title || "Unknown Song"}
-        </Text>
-        <Text
-          style={[styles.itemSubtitle, { color: colors.tabIconDefault }]}
-          numberOfLines={1}
-        >
-          {song.artist || "Unknown Artist"}
-        </Text>
-      </View>
-    </Pressable>
-  );
-
-  const AlbumCard = ({ album }: { album: any }) => (
-    <Pressable style={[styles.gridCard, { backgroundColor: colors.card }]}>
-      <View
-        style={[styles.albumCover, { backgroundColor: colors.tabIconDefault }]}
-      />
-      <Text
-        style={[styles.gridCardTitle, { color: colors.text }]}
-        numberOfLines={2}
-      >
-        {album.title || "Unknown Album"}
-      </Text>
-      <Text
-        style={[styles.gridCardSubtitle, { color: colors.tabIconDefault }]}
-        numberOfLines={1}
-      >
-        {album.artist || "Unknown Artist"}
-      </Text>
-    </Pressable>
-  );
-
-  const PlaylistCard = ({ playlist }: { playlist: any }) => (
-    <Pressable style={[styles.gridCard, { backgroundColor: colors.card }]}>
-      <View
-        style={[
-          styles.playlistCover,
-          { backgroundColor: colors.tabIconDefault },
-        ]}
-      />
-      <Text
-        style={[styles.gridCardTitle, { color: colors.text }]}
-        numberOfLines={2}
-      >
-        {playlist.name || "Unknown Playlist"}
-      </Text>
-      <Text
-        style={[styles.gridCardSubtitle, { color: colors.tabIconDefault }]}
-        numberOfLines={1}
-      >
-        {playlist.trackCount || 0} songs
-      </Text>
-    </Pressable>
+      try {
+        const currentStatus = followStatus[userId] || false;
+        const newStatus = await followApi.toggleFollow(userId, currentStatus);
+        setFollowStatus((prev) => ({ ...prev, [userId]: newStatus }));
+      } catch (error) {
+        console.error("Error toggling follow:", error);
+      } finally {
+        setLoadingFollows((prev) => ({ ...prev, [userId]: false }));
+      }
+    },
+    [followStatus, loadingFollows]
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }, {backgroundColor: colors.background}]}>
+    <View
+      style={[
+        styles.container,
+        { paddingTop: insets.top },
+        { backgroundColor: colors.background },
+      ]}
+    >
       <ScrollView
         style={[styles.scrollContainer]}
         showsVerticalScrollIndicator={false}
@@ -228,7 +105,12 @@ export default function ExploreScreen() {
           >
             {users.map((user) => (
               <View key={user.id} style={styles.userCardWrapper}>
-                <UserCard user={user} />
+                <UserCard
+                  user={user}
+                  isFollowing={followStatus[user.id] || false}
+                  isLoading={loadingFollows[user.id] || false}
+                  onToggleFollow={handleToggleFollow}
+                />
               </View>
             ))}
           </ScrollView>
@@ -310,94 +192,12 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     paddingHorizontal: 16,
   },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  seeAll: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
   horizontalScroll: {
     marginHorizontal: -16,
     paddingHorizontal: 16,
   },
   userCardWrapper: {
     marginRight: 12,
-  },
-  userCard: {
-    width: 100,
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  userAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  userAvatarImage: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 30,
-  },
-  avatarText: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#fff",
-  },
-  userName: {
-    fontSize: 13,
-    fontWeight: "500",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  followButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 6,
-    width: "100%",
-  },
-  followButtonText: {
-    fontSize: 12,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  itemCard: {
-    flexDirection: "row",
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginBottom: 8,
-    alignItems: "center",
-  },
-  itemImage: {
-    width: 56,
-    height: 56,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  itemInfo: {
-    flex: 1,
-  },
-  itemTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  itemSubtitle: {
-    fontSize: 12,
   },
   gridContainer: {
     flexDirection: "row",
@@ -406,33 +206,6 @@ const styles = StyleSheet.create({
   },
   gridItem: {
     width: "48%",
-  },
-  gridCard: {
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  albumCover: {
-    width: "100%",
-    aspectRatio: 1,
-    marginBottom: 8,
-    borderRadius: 8,
-  },
-  playlistCover: {
-    width: "100%",
-    aspectRatio: 1,
-    marginBottom: 8,
-    borderRadius: 8,
-  },
-  gridCardTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-    paddingHorizontal: 8,
-    marginBottom: 4,
-  },
-  gridCardSubtitle: {
-    fontSize: 11,
-    paddingHorizontal: 8,
-    marginBottom: 8,
   },
   spacer: {
     height: 100,

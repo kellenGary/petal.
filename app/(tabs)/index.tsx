@@ -5,10 +5,12 @@
 import Feed from "@/components/Feed";
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "@/contexts/LocationContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { router } from "expo-router";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import MapView from "react-native-maps";
 
 // Main exported screen component for the Home / Feed tab.
@@ -21,6 +23,7 @@ export default function HomeScreen() {
   const isDark = colorScheme === "dark";
   const colors = Colors[isDark ? "dark" : "light"];
   const { isAuthenticated, user } = useAuth();
+  const { location } = useLocation();
 
   // Feed is rendered by the `Feed` component; item rendering lives in `FeedItem`.
 
@@ -31,57 +34,64 @@ export default function HomeScreen() {
         {/* Hero Header */}
         <View style={styles.headerContainer}>
           <Image
-            source={!isDark ? require("../../assets/images/black-icon.png") : require("../../assets/images/icon.png")}
+            source={
+              !isDark
+                ? require("../../assets/images/black-icon.png")
+                : require("../../assets/images/icon.png")
+            }
             style={styles.headerImage}
           />
-          <Text style={[styles.headerText, { color: colors.text }]}>Welcome {user?.displayName}</Text>
+          <Text style={[styles.headerText, { color: colors.text }]}>
+            Welcome {user?.displayName}
+          </Text>
         </View>
 
         <View style={styles.headerContentContainer}>
           {/* Map Section */}
-          <MapView style={styles.map} />
+          <Pressable
+            style={styles.map}
+            onPress={() => router.push("/(tabs)/map")}
+          >
+            {location ? (
+              <MapView
+                style={styles.map}
+                region={{
+                  latitude: location.latitude,
+                  longitude: location.longitude,
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                }}
+                showsUserLocation
+                showsMyLocationButton
+              />
+            ) : (
+              <View
+                style={[
+                  styles.map,
+                  {
+                    backgroundColor: colors.background,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  },
+                ]}
+              >
+                <Text style={{ color: colors.text }}>Loading location...</Text>
+              </View>
+            )}
+          </Pressable>
 
           {/* Live Listeners Section */}
-          <View style={styles.activeContainer}>
-            <Text style={[styles.activeHeaderText, { color: colors.text }]}>Listening Now</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.activeScrollView}
-              contentContainerStyle={styles.activeScrollContent}
-            >
-              <View style={styles.listenerCard}>
-                <View style={styles.songBubble}>
-                  <Text style={[styles.songName, { color: Colors.light.text }]} numberOfLines={2}>
-                    songName
-                  </Text>
-                </View>
-                <View style={styles.profileImageContainer}>
-                  <Image
-                    source={{ uri: "https://i.pravatar.cc/300?img=12" }}
-                    style={styles.profileImage}
-                  />
-                </View>
-                <Text style={[styles.username, { color: colors.text }]}>Name</Text>
-              </View>
-            </ScrollView>
-          </View>
+          {/* <LiveListeners /> */}
         </View>
       </View>
-      
+
       {/* Feed Header */}
       <View style={styles.feedHeaderContainer}>
-        <Text style={[styles.activeHeaderText, { color: colors.text }]}>Your Feed</Text>
+        <Text style={[styles.activeHeaderText, { color: colors.text }]}>
+          Your Feed
+        </Text>
       </View>
     </>
-  );
-
-  const renderFooter = () => {
-    return null;
-  };
-
-  const renderEmpty = () => (
-    <View />
   );
 
   // renderEmpty: shown when the feed has no items — encourages discovery by following users.
@@ -94,7 +104,7 @@ export default function HomeScreen() {
         end={{ x: 0, y: 1 }}
         style={styles.containerGradient}
       >
-        <Feed ListHeaderComponent={renderHeader} />
+        <Feed ListHeaderComponent={renderHeader()} />
       </LinearGradient>
     </View>
   );
@@ -141,67 +151,11 @@ const styles = StyleSheet.create({
     width: "100%",
     borderRadius: 16,
   },
-  activeContainer: {
-    width: "100%",
-  },
   activeHeaderText: {
     fontSize: 16,
     fontWeight: "500",
     color: "black",
     marginBottom: 12,
-  },
-  activeScrollView: {
-    width: "100%",
-  },
-  activeScrollContent: {
-    gap: 16,
-    paddingVertical: 8,
-  },
-  listenerCard: {
-    alignItems: "center",
-  },
-  songBubble: {
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    maxWidth: 120,
-    minHeight: 40,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    marginBottom: -12,
-    zIndex: 1,
-  },
-  songName: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#000",
-    textAlign: "center",
-  },
-  profileImageContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 3,
-    borderColor: "#667eea",
-    padding: 2,
-  },
-  profileImage: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 28,
-  },
-  username: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: "black",
-    textAlign: "center",
-    marginTop: 8,
   },
   sectionContainer: {
     paddingHorizontal: 16,
@@ -211,5 +165,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginTop: 24,
   },
-  
 });
