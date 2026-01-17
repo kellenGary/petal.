@@ -75,7 +75,7 @@ LEFT JOIN "Artists" ar ON ta.ArtistId = ar.Id
 ORDER BY lh.PlayedAt DESC;
 
 -- Create view for user profile stats
-CREATE VIEW IF NOT EXISTS UserProfileStats AS
+CREATE VIEW IF NOT EXISTS UserProfileData AS
 SELECT 
     u.Id as UserId,
     u.DisplayName,
@@ -87,11 +87,15 @@ SELECT
     COUNT(DISTINCT CASE WHEN lh.PlayedAt >= datetime('now', '-7 days') THEN lh.Id END) as RecentPlaysLast7Days,
     COUNT(DISTINCT ta.ArtistId) as TotalArtistsHeard,
     COUNT(DISTINCT t.AlbumId) as TotalAlbumsHeard,
+    COUNT(DISTINCT f2.FollowerUserId) as TotalFollowers,
+    COUNT(DISTINCT f.FolloweeUserId) as TotalFollowing,
     MAX(lh.PlayedAt) as LastPlayedAt
 FROM "Users" u
 LEFT JOIN "ListeningHistory" lh ON u.Id = lh.UserId
 LEFT JOIN "Tracks" t ON lh.TrackId = t.Id
 LEFT JOIN "TrackArtists" ta ON t.Id = ta.TrackId
+LEFT JOIN "Follows" f ON u.Id = f.FollowerUserId
+LEFT JOIN "Follows" f2 ON u.Id = f2.FolloweeUserId
 GROUP BY u.Id, u.DisplayName, u.Handle, u.Bio, u.ProfileImageUrl;
 
 -- Create view for user's liked tracks with all track, album, and artist details

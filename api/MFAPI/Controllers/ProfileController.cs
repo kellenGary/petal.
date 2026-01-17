@@ -125,17 +125,13 @@ public class ProfileController : ControllerBase
                 new AuthenticationHeaderValue("Bearer", accessToken);
 
             // Fetch top artists and tracks
-            var topArtistsTask = client.GetAsync("https://api.spotify.com/v1/me/top/artists?limit=10&time_range=medium_term");
-            var topTracksTask = client.GetAsync("https://api.spotify.com/v1/me/top/tracks?limit=10&time_range=medium_term");
-            var recentlyPlayedTask = client.GetAsync("https://api.spotify.com/v1/me/player/recently-played?limit=20");
+            var topItems = client.GetAsync("https://api.spotify.com/v1/me/top/artists,tracks");
 
-            await Task.WhenAll(topArtistsTask, topTracksTask, recentlyPlayedTask);
+            await Task.WhenAll(topItems);
 
             var stats = new
             {
-                topArtists = JsonSerializer.Deserialize<JsonElement>(await topArtistsTask.Result.Content.ReadAsStringAsync()),
-                topTracks = JsonSerializer.Deserialize<JsonElement>(await topTracksTask.Result.Content.ReadAsStringAsync()),
-                recentlyPlayed = JsonSerializer.Deserialize<JsonElement>(await recentlyPlayedTask.Result.Content.ReadAsStringAsync())
+                topItems = JsonSerializer.Deserialize<JsonElement>(await topItems.Result.Content.ReadAsStringAsync())
             };
 
             return Ok(stats);

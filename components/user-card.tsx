@@ -1,9 +1,9 @@
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Image } from "expo-image";
 import { RelativePathString, router } from "expo-router";
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -13,8 +13,18 @@ import {
 interface UserCardProps {
   user: {
     id: number;
+    spotifyId?: string;
     displayName?: string;
+    handle?: string;
+    bio?: string;
+    email?: string;
     profileImageUrl?: string;
+    hasCompletedProfile?: boolean;
+    spotifyAccessToken?: string;
+    spotifyRefreshToken?: string;
+    tokenExpiresAt?: string;
+    createdAt?: string;
+    updatedAt?: string;
   };
   isFollowing: boolean;
   isLoading: boolean;
@@ -35,6 +45,7 @@ export default function UserCard({
     router.push(`/profile/${userId}` as RelativePathString);
   };
 
+  console.log(JSON.stringify(user, null, 2));
   return (
     <Pressable
       style={[styles.userCard, { borderColor: colors.tabIconDefault }]}
@@ -47,7 +58,7 @@ export default function UserCard({
           <Image
             source={{ uri: user.profileImageUrl }}
             style={styles.userAvatarImage}
-            resizeMode="cover"
+            contentFit="cover"
           />
         ) : (
           <Text style={styles.avatarText}>
@@ -110,6 +121,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 8,
+    overflow: "hidden",
   },
   userAvatarImage: {
     width: "100%",

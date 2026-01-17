@@ -3,124 +3,304 @@ import userDataApi from "@/services/userDataApi";
 import { useCallback, useState } from "react";
 
 type LoadingFlags = {
-    tracks: boolean;
-    albums: boolean;
-    playlists: boolean;
-    artists: boolean;
+  tracks: boolean;
+  albums: boolean;
+  playlists: boolean;
+  artists: boolean;
+};
+
+type PaginationState = {
+  recentTracks: { total: number; hasMore: boolean };
+  likedTracks: { total: number; hasMore: boolean };
+  likedAlbums: { total: number; hasMore: boolean };
+  followedArtists: { total: number; hasMore: boolean };
 };
 
 export default function useUserContent(userId?: number) {
-    const [recentTracks, setRecentTracks] = useState<any[]>([]);
-    const [likedTracks, setLikedTracks] = useState<any[]>([]);
-    const [likedAlbums, setLikedAlbums] = useState<any[]>([]);
-    const [playlists, setPlaylists] = useState<any[]>([]);
-    const [followedArtists, setFollowedArtists] = useState<any[]>([]);
+  const [recentTracks, setRecentTracks] = useState<any[]>([]);
+  const [likedTracks, setLikedTracks] = useState<any[]>([]);
+  const [likedAlbums, setLikedAlbums] = useState<any[]>([]);
+  const [playlists, setPlaylists] = useState<any[]>([]);
+  const [followedArtists, setFollowedArtists] = useState<any[]>([]);
 
-    const [loading, setLoading] = useState<LoadingFlags>({
-        tracks: false,
-        albums: false,
-        playlists: false,
-        artists: false,
-    });
+  const [loading, setLoading] = useState<LoadingFlags>({
+    tracks: false,
+    albums: false,
+    playlists: false,
+    artists: false,
+  });
 
-    const fetchRecentTracks = useCallback(async (limit = 50, offset = 0, force = false) => {
-        if (!force && recentTracks.length > 0) return { items: recentTracks };
-        setLoading((s) => ({ ...s, tracks: true }));
-        try {
-            // Use listeningHistory enriched endpoint so `track.id` is the DB native id
-            const data = await listeningHistoryApi.getEnrichedListeningHistory(limit, offset, userId);
-            setRecentTracks(data.items || []);
-            return data;
-        } finally {
-            setLoading((s) => ({ ...s, tracks: false }));
-        }
-    }, [recentTracks.length, userId]);
+  const [pagination, setPagination] = useState<PaginationState>({
+    recentTracks: { total: 0, hasMore: true },
+    likedTracks: { total: 0, hasMore: true },
+    likedAlbums: { total: 0, hasMore: true },
+    followedArtists: { total: 0, hasMore: true },
+  });
 
-    const fetchLikedTracks = useCallback(async (limit = 50, offset = 0, force = false) => {
-        if (!force && likedTracks.length > 0) return { items: likedTracks };
-        setLoading((s) => ({ ...s, tracks: true }));
-        try {
-            const data = await userDataApi.getLikedTracks(limit, offset, userId);
-            setLikedTracks(data.items || []);
-            return data;
-        } finally {
-            setLoading((s) => ({ ...s, tracks: false }));
-        }
-    }, [likedTracks.length, userId]);
+  /**
+   * Fetch recent tracks with pagination support
+   * @param limit - Number of items to fetch
+   * @param offset - Offset for pagination
+   * @param refresh - If true, replaces data; if false, appends data
+   */
+  const fetchRecentTracks = useCallback(
+    async (limit = 50, offset = 0, refresh = false) => {
+      // Skip if not refreshing and already have data at offset 0
+      if (!refresh && offset === 0 && recentTracks.length > 0) {
+        return { items: recentTracks, total: pagination.recentTracks.total };
+      }
 
-    const fetchLikedAlbums = useCallback(async (limit = 50, offset = 0, force = false) => {
-        if (!force && likedAlbums.length > 0) return { items: likedAlbums };
-        setLoading((s) => ({ ...s, albums: true }));
-        try {
-            const data = await userDataApi.getLikedAlbums(limit, offset, userId);
-            setLikedAlbums(data.items || []);
-            return data;
-        } finally {
-            setLoading((s) => ({ ...s, albums: false }));
-        }
-    }, [likedAlbums.length, userId]);
+      // Skip if loading or no more data (unless refreshing)
+      if (!refresh && (loading.tracks || !pagination.recentTracks.hasMore)) {
+        return { items: recentTracks, total: pagination.recentTracks.total };
+      }
 
-    const fetchPlaylists = useCallback(async (force = false) => {
-        if (!force && playlists.length > 0) return { items: playlists };
-        setLoading((s) => ({ ...s, playlists: true }));
-        try {
-            const data = await userDataApi.getPlaylists(userId);
-            setPlaylists(data.items || []);
-            return data;
-        } finally {
-            setLoading((s) => ({ ...s, playlists: false }));
-        }
-    }, [playlists.length, userId]);
-
-    const fetchFollowedArtists = useCallback(async (limit = 50, offset = 0, force = false) => {
-        if (!force && followedArtists.length > 0) return { items: followedArtists };
-        setLoading((s) => ({ ...s, artists: true }));
-        try {
-            const data = await userDataApi.getFollowedArtists(limit, offset, userId);
-            setFollowedArtists(data.items || []);
-            return data;
-        } finally {
-            setLoading((s) => ({ ...s, artists: false }));
-        }
-    }, [followedArtists.length, userId]);
-
-    const refreshAll = useCallback(async () => {
-        await Promise.all([
-            fetchLikedTracks(50, 0, true),
-            fetchLikedAlbums(50, 0, true),
-            fetchPlaylists(true),
-            fetchFollowedArtists(50, 0, true),
-        ]);
-    }, [fetchLikedAlbums, fetchLikedTracks, fetchFollowlistsSafeName(fetchPlaylists), fetchFollowedArtists]);
-
-    // helper to avoid repeating nested field lookup logic in many screens
-    const searchItems = useCallback((items: any[], searchFields: string[], query: string) => {
-        if (!query || !query.trim()) return items;
-        const q = query.toLowerCase();
-        return items.filter((item) =>
-            searchFields.some((field) => {
-                const value = field.split(".").reduce((obj: any, key) => obj?.[key], item);
-                return value?.toString().toLowerCase().includes(q);
-            })
+      setLoading((s) => ({ ...s, tracks: true }));
+      try {
+        const data = await listeningHistoryApi.getEnrichedListeningHistory(
+          limit,
+          offset,
+          userId
         );
-    }, []);
+        const newItems = data.items || [];
 
-    return {
-        recentTracks,
-        likedTracks,
-        likedAlbums,
-        playlists,
-        followedArtists,
-        loading,
-        fetchRecentTracks,
-        fetchLikedTracks,
-        fetchLikedAlbums,
-        fetchPlaylists,
-        fetchFollowedArtists,
-        refreshAll,
-        searchItems,
-    };
+        if (refresh || offset === 0) {
+          setRecentTracks(newItems);
+        } else {
+          setRecentTracks((prev) => [...prev, ...newItems]);
+        }
+
+        const total = data.total || 0;
+        const hasMore = offset + newItems.length < total;
+        setPagination((prev) => ({
+          ...prev,
+          recentTracks: { total, hasMore },
+        }));
+
+        return data;
+      } finally {
+        setLoading((s) => ({ ...s, tracks: false }));
+      }
+    },
+    [recentTracks.length, userId, loading.tracks, pagination.recentTracks]
+  );
+
+  /**
+   * Fetch liked tracks with pagination support
+   */
+  const fetchLikedTracks = useCallback(
+    async (limit = 50, offset = 0, refresh = false) => {
+      if (!refresh && offset === 0 && likedTracks.length > 0) {
+        return { items: likedTracks, total: pagination.likedTracks.total };
+      }
+
+      if (!refresh && (loading.tracks || !pagination.likedTracks.hasMore)) {
+        return { items: likedTracks, total: pagination.likedTracks.total };
+      }
+
+      setLoading((s) => ({ ...s, tracks: true }));
+      try {
+        const data = await userDataApi.getLikedTracks(limit, offset, userId);
+        const newItems = data.items || [];
+
+        if (refresh || offset === 0) {
+          setLikedTracks(newItems);
+        } else {
+          setLikedTracks((prev) => [...prev, ...newItems]);
+        }
+
+        const total = data.total || 0;
+        const hasMore = offset + newItems.length < total;
+        setPagination((prev) => ({
+          ...prev,
+          likedTracks: { total, hasMore },
+        }));
+
+        return data;
+      } finally {
+        setLoading((s) => ({ ...s, tracks: false }));
+      }
+    },
+    [likedTracks.length, userId, loading.tracks, pagination.likedTracks]
+  );
+
+  /**
+   * Fetch liked albums with pagination support
+   */
+  const fetchLikedAlbums = useCallback(
+    async (limit = 50, offset = 0, refresh = false) => {
+      if (!refresh && offset === 0 && likedAlbums.length > 0) {
+        return { items: likedAlbums, total: pagination.likedAlbums.total };
+      }
+
+      if (!refresh && (loading.albums || !pagination.likedAlbums.hasMore)) {
+        return { items: likedAlbums, total: pagination.likedAlbums.total };
+      }
+
+      setLoading((s) => ({ ...s, albums: true }));
+      try {
+        const data = await userDataApi.getLikedAlbums(limit, offset, userId);
+        const newItems = data.items || [];
+
+        if (refresh || offset === 0) {
+          setLikedAlbums(newItems);
+        } else {
+          setLikedAlbums((prev) => [...prev, ...newItems]);
+        }
+
+        const total = data.total || 0;
+        const hasMore = offset + newItems.length < total;
+        setPagination((prev) => ({
+          ...prev,
+          likedAlbums: { total, hasMore },
+        }));
+
+        return data;
+      } finally {
+        setLoading((s) => ({ ...s, albums: false }));
+      }
+    },
+    [likedAlbums.length, userId, loading.albums, pagination.likedAlbums]
+  );
+
+  /**
+   * Fetch playlists (no pagination - playlists are typically not paginated)
+   */
+  const fetchPlaylists = useCallback(
+    async (refresh = false) => {
+      if (!refresh && playlists.length > 0) return { items: playlists };
+      setLoading((s) => ({ ...s, playlists: true }));
+      try {
+        const data = await userDataApi.getPlaylists(userId);
+        setPlaylists(data.items || []);
+        return data;
+      } finally {
+        setLoading((s) => ({ ...s, playlists: false }));
+      }
+    },
+    [playlists.length, userId]
+  );
+
+  /**
+   * Fetch followed artists with pagination support
+   */
+  const fetchFollowedArtists = useCallback(
+    async (limit = 50, offset = 0, refresh = false) => {
+      if (!refresh && offset === 0 && followedArtists.length > 0) {
+        return {
+          items: followedArtists,
+          total: pagination.followedArtists.total,
+        };
+      }
+
+      if (
+        !refresh &&
+        (loading.artists || !pagination.followedArtists.hasMore)
+      ) {
+        return {
+          items: followedArtists,
+          total: pagination.followedArtists.total,
+        };
+      }
+
+      setLoading((s) => ({ ...s, artists: true }));
+      try {
+        const data = await userDataApi.getFollowedArtists(
+          limit,
+          offset,
+          userId
+        );
+        const newItems = data.items || [];
+
+        if (refresh || offset === 0) {
+          setFollowedArtists(newItems);
+        } else {
+          setFollowedArtists((prev) => [...prev, ...newItems]);
+        }
+
+        const total = data.total || 0;
+        const hasMore = offset + newItems.length < total;
+        setPagination((prev) => ({
+          ...prev,
+          followedArtists: { total, hasMore },
+        }));
+
+        return data;
+      } finally {
+        setLoading((s) => ({ ...s, artists: false }));
+      }
+    },
+    [
+      followedArtists.length,
+      userId,
+      loading.artists,
+      pagination.followedArtists,
+    ]
+  );
+
+  /**
+   * Reset pagination state (call when userId changes)
+   */
+  const resetPagination = useCallback(() => {
+    setPagination({
+      recentTracks: { total: 0, hasMore: true },
+      likedTracks: { total: 0, hasMore: true },
+      likedAlbums: { total: 0, hasMore: true },
+      followedArtists: { total: 0, hasMore: true },
+    });
+    setRecentTracks([]);
+    setLikedTracks([]);
+    setLikedAlbums([]);
+    setPlaylists([]);
+    setFollowedArtists([]);
+  }, []);
+
+  const refreshAll = useCallback(async () => {
+    await Promise.all([
+      fetchLikedTracks(50, 0, true),
+      fetchLikedAlbums(50, 0, true),
+      fetchPlaylists(true),
+      fetchFollowedArtists(50, 0, true),
+    ]);
+  }, [
+    fetchLikedAlbums,
+    fetchLikedTracks,
+    fetchPlaylists,
+    fetchFollowedArtists,
+  ]);
+
+  // helper to avoid repeating nested field lookup logic in many screens
+  const searchItems = useCallback(
+    (items: any[], searchFields: string[], query: string) => {
+      if (!query || !query.trim()) return items;
+      const q = query.toLowerCase();
+      return items.filter((item) =>
+        searchFields.some((field) => {
+          const value = field
+            .split(".")
+            .reduce((obj: any, key) => obj?.[key], item);
+          return value?.toString().toLowerCase().includes(q);
+        })
+      );
+    },
+    []
+  );
+
+  return {
+    recentTracks,
+    likedTracks,
+    likedAlbums,
+    playlists,
+    followedArtists,
+    loading,
+    pagination,
+    fetchRecentTracks,
+    fetchLikedTracks,
+    fetchLikedAlbums,
+    fetchPlaylists,
+    fetchFollowedArtists,
+    resetPagination,
+    refreshAll,
+    searchItems,
+  };
 }
-
-// Small workaround to keep lint happy when referencing functions inside refreshAll deps
-function fetchFollowlistsSafeName(fn: any) { return fn; }

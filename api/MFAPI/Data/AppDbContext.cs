@@ -24,6 +24,7 @@ public class AppDbContext : DbContext
     public DbSet<Follow> Follows { get; set; }
     public DbSet<Post> Posts { get; set; }
     public DbSet<SpotifySyncState> SpotifySyncStates { get; set; }
+    public DbSet<UserProfileData> UserProfileData { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -218,5 +219,10 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(s => s.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // View mapping
+        modelBuilder.Entity<UserProfileData>()
+            .ToView("UserProfileData")
+            .HasKey(u => u.UserId);
     }
 }

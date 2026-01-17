@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using MFAPI.Data;
 
@@ -28,42 +29,66 @@ public class AppProfileController : ControllerBase
             return Unauthorized(new { error = "Invalid token" });
         }
 
-        var user = await _context.Users.FindAsync(userId);
+        var user = await _context.UserProfileData.FindAsync(userId);
         if (user == null)
         {
             return NotFound(new { error = "User not found" });
         }
 
+        // Fetch SpotifyId from Users table since UserProfileData view doesn't include it
+        var spotifyId = await _context.Users
+            .Where(u => u.Id == userId)
+            .Select(u => u.SpotifyId)
+            .FirstOrDefaultAsync();
+
         return Ok(new {
-            id = user.Id,
-            spotifyId = user.SpotifyId,
+            id = user.UserId,
+            spotifyId = spotifyId,
             displayName = user.DisplayName,
             handle = user.Handle,
             bio = user.Bio,
-            email = user.Email,
             profileImageUrl = user.ProfileImageUrl,
-            hasCompletedProfile = user.HasCompletedProfile
+            totalUniqueTracks = user.TotalUniqueTracks,
+            totalPlaybacks = user.TotalPlaybacks,
+            recentPlaysLast7Days = user.RecentPlaysLast7Days,
+            totalArtistsHeard = user.TotalArtistsHeard,
+            totalAlbumsHeard = user.TotalAlbumsHeard,
+            totalFollowers = user.TotalFollowers,
+            totalFollowing = user.TotalFollowing,
+            lastPlayedAt = user.LastPlayedAt
         });
     }
 
     [HttpGet("{userId}")]
     public async Task<IActionResult> GetAppProfileById(int userId)
     {
-        var user = await _context.Users.FindAsync(userId);
+        var user = await _context.UserProfileData.FindAsync(userId);
         if (user == null)
         {
             return NotFound(new { error = "User not found" });
         }
 
+        // Fetch SpotifyId from Users table since UserProfileData view doesn't include it
+        var spotifyId = await _context.Users
+            .Where(u => u.Id == userId)
+            .Select(u => u.SpotifyId)
+            .FirstOrDefaultAsync();
+
         return Ok(new {
-            id = user.Id,
-            spotifyId = user.SpotifyId,
+            id = user.UserId,
+            spotifyId = spotifyId,
             displayName = user.DisplayName,
             handle = user.Handle,
             bio = user.Bio,
-            email = user.Email,
             profileImageUrl = user.ProfileImageUrl,
-            hasCompletedProfile = user.HasCompletedProfile
+            totalUniqueTracks = user.TotalUniqueTracks,
+            totalPlaybacks = user.TotalPlaybacks,
+            recentPlaysLast7Days = user.RecentPlaysLast7Days,
+            totalArtistsHeard = user.TotalArtistsHeard,
+            totalAlbumsHeard = user.TotalAlbumsHeard,
+            totalFollowers = user.TotalFollowers,
+            totalFollowing = user.TotalFollowing,
+            lastPlayedAt = user.LastPlayedAt
         });
     }
 

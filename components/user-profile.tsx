@@ -6,8 +6,7 @@ import { Colors, Fonts } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import useUserContent from "@/hooks/useUserContent";
-import followApi from "@/services/followApi";
-import profileApi from "@/services/profileApi";
+import profileApi, { ProfileData } from "@/services/profileApi";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useFocusEffect } from "@react-navigation/native";
 import { Image } from "expo-image";
@@ -41,7 +40,7 @@ export default function UserProfile({ userId }: { userId?: number }) {
   const isDark = colorScheme === "dark";
   const colors = Colors[isDark ? "dark" : "light"];
   const [activeTab, setActiveTab] = useState<TabType>("history");
-  const [profileData, setProfileData] = useState<any>(null);
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -62,9 +61,11 @@ export default function UserProfile({ userId }: { userId?: number }) {
     likedTracks,
     playlists,
     loading: contentLoading,
+    pagination,
     fetchRecentTracks,
     fetchLikedTracks,
     fetchPlaylists,
+    resetPagination,
   } = useUserContent(userId);
 
   // Determine if viewing own profile or another user's profile
@@ -246,13 +247,10 @@ export default function UserProfile({ userId }: { userId?: number }) {
         try {
           const data = await profileApi.getAppProfile(userId);
           setProfileData(data);
-
-          // Fetch follow counts for this profile
-          const profileUserId = userId || data.id;
-          if (profileUserId) {
-            const counts = await followApi.getFollowCounts(profileUserId);
-            setFollowCounts(counts);
-          }
+          setFollowCounts({
+            followers: data.totalFollowers,
+            following: data.totalFollowing,
+          });
         } catch (error) {
           console.error("Failed to fetch profile:", error);
         }
@@ -264,8 +262,6 @@ export default function UserProfile({ userId }: { userId?: number }) {
       fetchPlaylists(true).catch(() => {});
     }, [isAuthenticated, userId])
   );
-
-  // recent tracks are loaded via the useUserContent hook
 
   // playlists are loaded via the useUserContent hook; wrapper kept for compatibility
   const loadPlaylists = useCallback(
@@ -299,20 +295,50 @@ export default function UserProfile({ userId }: { userId?: number }) {
     }
   }, [activeTab, fetchRecentTracks, loadPlaylists, fetchLikedTracks]);
 
-  // pagination/load-more handled by hook or not supported here; no-op
-  const loadMore = useCallback(() => {}, [activeTab]);
+  // Load more data for infinite scroll
+  const loadMore = useCallback(() => {
+    switch (activeTab) {
+      case "history":
+        if (!contentLoading.tracks && pagination.recentTracks.hasMore) {
+          const newOffset = recentTracks.length;
+          setHistoryOffset(newOffset);
+          fetchRecentTracks(PAGE_SIZE, newOffset, false);
+        }
+        break;
+      case "liked":
+        if (!contentLoading.tracks && pagination.likedTracks.hasMore) {
+          const newOffset = likedTracks.length;
+          setLikedOffset(newOffset);
+          fetchLikedTracks(PAGE_SIZE, newOffset, false);
+        }
+        break;
+      // Playlists don't have pagination
+    }
+  }, [
+    activeTab,
+    contentLoading.tracks,
+    pagination.recentTracks.hasMore,
+    pagination.likedTracks.hasMore,
+    recentTracks.length,
+    likedTracks.length,
+    fetchRecentTracks,
+    fetchLikedTracks,
+  ]);
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const { layoutMeasurement, contentOffset, contentSize } =
         event.nativeEvent;
-      const paddingToBottom = 100;
+      const paddingToBottom = 200;
       const isCloseToBottom =
         layoutMeasurement.height + contentOffset.y >=
         contentSize.height - paddingToBottom;
-      // infinite scroll disabled when using hook-managed content
+
+      if (isCloseToBottom) {
+        loadMore();
+      }
     },
-    []
+    [loadMore]
   );
 
   // Reset data when userId changes (navigating to different profile)
@@ -322,7 +348,9 @@ export default function UserProfile({ userId }: { userId?: number }) {
     setLikedOffset(0);
     setActiveTab("history");
     setFollowCounts({ followers: 0, following: 0 });
-    // refresh hook-managed content for the new profile
+    // Reset hook-managed pagination state
+    resetPagination();
+    // Refresh hook-managed content for the new profile
     fetchRecentTracks(PAGE_SIZE, 0, true).catch(() => {});
     fetchLikedTracks(PAGE_SIZE, 0, true).catch(() => {});
     fetchPlaylists(true).catch(() => {});
@@ -475,7 +503,7 @@ export default function UserProfile({ userId }: { userId?: number }) {
             </Pressable>
             <Pressable style={styles.statItem}>
               <Text style={[styles.statNumber, { color: colors.text }]}>
-                {formatNumber(0)}
+                {formatNumber(profileData?.totalUniqueTracks || 0)}
               </Text>
               <Text
                 style={[styles.statLabel, { color: colors.text, opacity: 0.7 }]}
@@ -497,6 +525,9 @@ export default function UserProfile({ userId }: { userId?: number }) {
 
         {/* Content Section */}
         <View style={styles.contentContainer}>{renderContent()}</View>
+
+        {/* Footer spacer */}
+        <View style={{ height: 168 }} />
       </ScrollView>
     </View>
   );
