@@ -64,6 +64,14 @@ class ProfileApiService {
       throw new Error("Failed to delete account");
     }
   }
+
+  async getSotd(userId?: number): Promise<any> {
+    const endpoint = userId
+      ? `/api/SongOfTheDay/${userId}`
+      : "/api/SongOfTheDay";
+    const response = await api.makeAuthenticatedRequest(endpoint);
+    return await response.json();
+  }
 }
 
 export default new ProfileApiService();

@@ -1,5 +1,5 @@
 {
-  "name": "mf",
+  "name": "petal",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
@@ -9,8 +9,8 @@
     "start:home": "EXPO_PUBLIC_API_URL=http://192.168.68.55:5164 npm run start",
     "start:edu": "EXPO_PUBLIC_API_URL=http://172.31.2.209:5164 npm run start:tunnel",
     "start:device": "EXPO_PUBLIC_API_URL=$EXPO_PUBLIC_API_URL expo start --tunnel",
-    "api": "dotnet run --project api/MFAPI/MFAPI.csproj --urls http://0.0.0.0:5164",
-    "api:watch": "dotnet watch --project api/MFAPI/MFAPI.csproj run --urls http://0.0.0.0:5164",
+    "api": "dotnet run --project api/petalAPI/PetalAPI.csproj --urls http://0.0.0.0:5164",
+    "api:watch": "dotnet watch --project api/petalAPI/PetalAPI.csproj run --urls http://0.0.0.0:5164",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
     "ios": "expo start --ios",

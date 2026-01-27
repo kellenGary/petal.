@@ -1,22 +1,15 @@
+import { BlurBackButton, StatsRow } from "@/components/media";
 import SongItem from "@/components/song-item";
+import ErrorScreen from "@/components/ui/ErrorScreen";
+import LoadingScreen from "@/components/ui/LoadingScreen";
 import { Colors } from "@/constants/theme";
 import spotifyApi from "@/services/spotifyApi";
-import Entypo from "@expo/vector-icons/Entypo";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import {
-  RelativePathString,
-  router,
-  Stack,
-  useLocalSearchParams,
-} from "expo-router";
+import { RelativePathString, Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Dimensions,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -65,45 +58,13 @@ export default function AlbumScreen() {
   const totalDuration = tracks.reduce((acc, track) => {
     return acc + (track?.duration_ms || 0);
   }, 0);
-  const totalMinutes = Math.floor(totalDuration / 60000);
-  const totalHours = Math.floor(totalMinutes / 60);
-  const remainingMinutes = totalMinutes % 60;
 
   if (loading) {
-    return (
-      <View
-        style={[
-          styles.loadingContainer,
-          { backgroundColor: colors.background },
-        ]}
-      >
-        <View style={styles.loaderWrapper}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.text }]}>
-            Loading album...
-          </Text>
-        </View>
-      </View>
-    );
+    return <LoadingScreen message="Loading album..." />;
   }
 
   if (!album) {
-    return (
-      <View
-        style={[styles.errorContainer, { backgroundColor: colors.background }]}
-      >
-        <Ionicons name="disc-outline" size={64} color={colors.icon} />
-        <Text style={[styles.errorText, { color: colors.text }]}>
-          Album not found
-        </Text>
-        <Pressable
-          style={[styles.backButton, { backgroundColor: colors.primary }]}
-          onPress={() => router.back()}
-        >
-          <Text style={styles.backButtonText}>Go Back</Text>
-        </Pressable>
-      </View>
-    );
+    return <ErrorScreen icon="disc-outline" message="Album not found" />;
   }
 
   return (
@@ -131,21 +92,7 @@ export default function AlbumScreen() {
           />
 
           {/* Back Button */}
-          <Pressable
-            onPress={() => router.back()}
-            style={({ pressed }) => [
-              styles.floatingBackButton,
-              { opacity: pressed ? 0.7 : 1 },
-            ]}
-          >
-            <BlurView
-              intensity={80}
-              tint={isDark ? "dark" : "light"}
-              style={styles.blurButton}
-            >
-              <Entypo name="chevron-left" size={24} color={colors.text} />
-            </BlurView>
-          </Pressable>
+          <BlurBackButton />
 
           {/* Album Cover */}
           <View style={styles.coverContainer}>
@@ -186,53 +133,13 @@ export default function AlbumScreen() {
                 "Unknown Artist"}
             </Text>
 
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Ionicons
-                  name="musical-notes"
-                  size={16}
-                  color={
-                    isDark ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.8)"
-                  }
-                />
-                <Text
-                  style={[
-                    styles.statText,
-                    {
-                      color: isDark
-                        ? "rgba(255,255,255,0.6)"
-                        : "rgba(255,255,255,0.8)",
-                    },
-                  ]}
-                >
-                  {tracks.length} tracks
-                </Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Ionicons
-                  name="time-outline"
-                  size={16}
-                  color={
-                    isDark ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.8)"
-                  }
-                />
-                <Text
-                  style={[
-                    styles.statText,
-                    {
-                      color: isDark
-                        ? "rgba(255,255,255,0.6)"
-                        : "rgba(255,255,255,0.8)",
-                    },
-                  ]}
-                >
-                  {totalHours > 0
-                    ? `${totalHours}h ${remainingMinutes}m`
-                    : `${remainingMinutes} min`}
-                </Text>
-              </View>
-            </View>
+            <StatsRow
+              trackCount={tracks.length}
+              totalDurationMs={totalDuration}
+              textColor={
+                isDark ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.8)"
+              }
+            />
 
             {album.release_date && (
               <Text

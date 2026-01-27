@@ -9,6 +9,7 @@ type LoadingFlags = {
   playlists: boolean;
   artists: boolean;
   topArtists: boolean;
+  sotd: boolean;
 };
 
 type PaginationState = {
@@ -26,6 +27,7 @@ export default function useUserContent(userId?: number) {
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [followedArtists, setFollowedArtists] = useState<any[]>([]);
   const [topArtists, setTopArtists] = useState<any[]>([]);
+  const [sotd, setSotd] = useState<any | null>(null);
 
   const [loading, setLoading] = useState<LoadingFlags>({
     tracks: false,
@@ -33,6 +35,7 @@ export default function useUserContent(userId?: number) {
     playlists: false,
     artists: false,
     topArtists: false,
+    sotd: false,
   });
 
   const [pagination, setPagination] = useState<PaginationState>({
@@ -244,6 +247,16 @@ export default function useUserContent(userId?: number) {
     ],
   );
 
+  const fetchSotd = useCallback(async () => {
+    setLoading((s) => ({ ...s, sotd: true }));
+    try {
+      const data = await profileApi.getSotd(userId);
+      setSotd(data.songOfTheDay);
+    } finally {
+      setLoading((s) => ({ ...s, sotd: false }));
+    }
+  }, [userId]);
+
   /**
    * Reset pagination state (call when userId changes)
    */
@@ -261,6 +274,7 @@ export default function useUserContent(userId?: number) {
     setPlaylists([]);
     setFollowedArtists([]);
     setTopArtists([]);
+    setSotd(null);
   }, []);
 
   const refreshAll = useCallback(async () => {
@@ -322,6 +336,7 @@ export default function useUserContent(userId?: number) {
   );
 
   return {
+    sotd,
     topArtists,
     recentTracks,
     likedTracks,
@@ -330,6 +345,7 @@ export default function useUserContent(userId?: number) {
     followedArtists,
     loading,
     pagination,
+    fetchSotd,
     fetchTopArtists,
     fetchRecentTracks,
     fetchLikedTracks,

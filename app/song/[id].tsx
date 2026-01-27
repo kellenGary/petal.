@@ -1,3 +1,4 @@
+import LikeButton from "@/components/like-button";
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/services/api";
@@ -261,32 +262,14 @@ export default function SongModal() {
         {/* Action Buttons */}
         <View style={styles.section}>
           <View style={styles.actionsRow}>
-            <Pressable
-              style={[
-                styles.actionButton,
-                {
-                  backgroundColor: liked ? "#1DB954" : colors.card,
-                  opacity: likeLoading ? 0.7 : 1,
-                },
-              ]}
-              onPress={handleToggleLike}
-              disabled={likeLoading || liked === null}
-            >
-              <MaterialIcons
-                name={liked ? "favorite" : "favorite-border"}
-                size={18}
-                color={liked ? "#fff" : colors.text}
-              />
-              <Text
-                style={[
-                  styles.actionText,
-                  { color: liked ? "#fff" : colors.text },
-                ]}
-              >
-                {liked === null ? "..." : liked ? "Liked" : "Like"}
-              </Text>
-            </Pressable>
+            {/* Like Button */}
+            <LikeButton
+              liked={liked}
+              likeLoading={likeLoading}
+              handleToggleLike={handleToggleLike}
+            />
 
+            {/* Playlist Button */}
             <Pressable
               style={[styles.actionButton, { backgroundColor: colors.card }]}
               onPress={handleAddToPlaylist}

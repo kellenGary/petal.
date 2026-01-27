@@ -9,8 +9,8 @@ export const API_URL =
       : "http://10.0.2.2:5164"
     : "https://your-production-api.com");
 export const CLIENT_ID = "5f758f2be85d4ae3b816ac89b17e3448";
-export const REDIRECT_URI = "mf://callback";
-export const BACKEND_REDIRECT_URI = "mf://callback"; // Must match REDIRECT_URI for Spotify token exchange
+export const REDIRECT_URI = "petal://callback";
+export const BACKEND_REDIRECT_URI = "petal://callback"; // Must match REDIRECT_URI for Spotify token exchange
 
 export const SCOPES = [
   "user-read-private",

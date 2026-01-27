@@ -1,3 +1,8 @@
+import {
+  ClusteredMapMarker,
+  ClusteredMarker,
+  clusterMarkers,
+} from "@/components/map";
 import { Colors, Fonts } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -10,7 +15,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
 import { router } from "expo-router";
 import React, {
-  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -27,107 +31,11 @@ import {
   Text,
   View,
 } from "react-native";
-import MapView, { Marker, Region } from "react-native-maps";
+import MapView, { Region } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-// Cluster nearby markers to reduce render count
-interface ClusteredMarker {
-  id: string;
-  latitude: number;
-  longitude: number;
-  count: number;
-  items: LocationHistoryEntry[];
-}
-
-function clusterMarkers(
-  items: LocationHistoryEntry[],
-  region: Region | null,
-  clusterRadius: number = 0.002,
-): ClusteredMarker[] {
-  if (!region || items.length === 0) return [];
-
-  const clusters: ClusteredMarker[] = [];
-  const processed = new Set<number>();
-
-  // Limit items to improve performance
-  const limitedItems = items.slice(0, 200);
-
-  for (const item of limitedItems) {
-    if (processed.has(item.id)) continue;
-
-    // Find nearby items to cluster
-    const nearby = limitedItems.filter((other) => {
-      if (processed.has(other.id)) return false;
-      const latDiff = Math.abs(item.latitude - other.latitude);
-      const lngDiff = Math.abs(item.longitude - other.longitude);
-      return latDiff < clusterRadius && lngDiff < clusterRadius;
-    });
-
-    nearby.forEach((n) => processed.add(n.id));
-
-    // Calculate cluster center
-    const avgLat =
-      nearby.reduce((sum, n) => sum + n.latitude, 0) / nearby.length;
-    const avgLng =
-      nearby.reduce((sum, n) => sum + n.longitude, 0) / nearby.length;
-
-    clusters.push({
-      id: `cluster-${item.id}`,
-      latitude: avgLat,
-      longitude: avgLng,
-      count: nearby.length,
-      items: nearby,
-    });
-  }
-
-  return clusters;
-}
-
-// Memoized marker component for better performance
-const MapMarker = memo(function MapMarker({
-  cluster,
-  onPress,
-}: {
-  cluster: ClusteredMarker;
-  onPress: (cluster: ClusteredMarker) => void;
-}) {
-  const firstItem = cluster.items[0];
-  const imageUrl = firstItem?.track.album?.image_url;
-
-  return (
-    <Marker
-      coordinate={{
-        latitude: cluster.latitude,
-        longitude: cluster.longitude,
-      }}
-      onPress={() => onPress(cluster)}
-      tracksViewChanges={false}
-    >
-      <View style={styles.markerWrapper}>
-        <View style={styles.markerContainer}>
-          {imageUrl ? (
-            <Image
-              source={{ uri: imageUrl }}
-              style={styles.markerImage}
-              cachePolicy="memory-disk"
-            />
-          ) : (
-            <View style={styles.markerPlaceholder}>
-              <MaterialIcons name="music-note" size={24} color="#fff" />
-            </View>
-          )}
-        </View>
-        {cluster.count > 1 && (
-          <View style={styles.clusterBadge}>
-            <Text style={styles.clusterBadgeText}>
-              {cluster.count > 99 ? "99+" : cluster.count}
-            </Text>
-          </View>
-        )}
-      </View>
-    </Marker>
-  );
-});
+// Helper to get image URL from a history entry
+const getImageUrl = (item: LocationHistoryEntry) => item.track.album?.image_url;
 
 export default function ListeningMapScreen() {
   const insets = useSafeAreaInsets();
@@ -141,7 +49,7 @@ export default function ListeningMapScreen() {
   const [historyItems, setHistoryItems] = useState<LocationHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCluster, setSelectedCluster] =
-    useState<ClusteredMarker | null>(null);
+    useState<ClusteredMarker<LocationHistoryEntry> | null>(null);
   const [region, setRegion] = useState<Region | null>(null);
 
   // Get user's current location for initial map center
@@ -209,9 +117,12 @@ export default function ListeningMapScreen() {
     return clusterMarkers(historyItems, region, clusterRadius);
   }, [historyItems, region?.latitudeDelta]);
 
-  const handleMarkerPress = useCallback((cluster: ClusteredMarker) => {
-    setSelectedCluster(cluster);
-  }, []);
+  const handleMarkerPress = useCallback(
+    (cluster: ClusteredMarker<LocationHistoryEntry>) => {
+      setSelectedCluster(cluster);
+    },
+    [],
+  );
 
   const handleRegionChange = useCallback((newRegion: Region) => {
     setRegion(newRegion);
@@ -274,7 +185,10 @@ export default function ListeningMapScreen() {
         colors={["rgba(0,0,0,0.4)", "rgba(0,0,0,0.2)", "transparent"]}
         style={[styles.header, { paddingTop: insets.top + 8 }]}
       >
-        <Pressable style={[styles.backButton, {backgroundColor: "colors.icon"}]} onPress={() => router.back()}>
+        <Pressable
+          style={[styles.backButton, { backgroundColor: "colors.icon" }]}
+          onPress={() => router.back()}
+        >
           <MaterialIcons name="arrow-back" size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>Listening Map</Text>
@@ -295,10 +209,11 @@ export default function ListeningMapScreen() {
           {...(Platform.OS === "ios" ? { loadingEnabled: true } : {})}
         >
           {clusteredMarkers.map((cluster) => (
-            <MapMarker
+            <ClusteredMapMarker
               key={cluster.id}
               cluster={cluster}
               onPress={handleMarkerPress}
+              getImageUrl={getImageUrl}
             />
           ))}
         </MapView>
@@ -472,50 +387,6 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
-  },
-  markerWrapper: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  markerContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    overflow: "hidden",
-    backgroundColor: "#538ce9",
-  },
-  markerImage: {
-    width: "100%",
-    height: "100%",
-  },
-  markerPlaceholder: {
-    width: "100%",
-    height: "100%",
-    backgroundColor: "#538ce9",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  clusterBadge: {
-    position: "absolute",
-    top: -6,
-    right: -6,
-    backgroundColor: "#ff4444",
-    borderRadius: 12,
-    minWidth: 24,
-    height: 24,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  clusterBadgeText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "bold",
   },
   statsOverlay: {
     position: "absolute",

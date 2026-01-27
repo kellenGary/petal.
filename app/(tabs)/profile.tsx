@@ -1,7 +1,5 @@
-import UserProfile from "@/components/user-profile";
+import UserProfile from "@/components/profile/user-profile";
 
 export default function ProfileScreen() {
-  return (
-    <UserProfile />
-  )
+  return <UserProfile />;
 }

@@ -96,6 +96,15 @@ function RootLayoutNav() {
           contentStyle: { backgroundColor: colors.background },
         }}
       />
+      <Stack.Screen
+        name="sotd"
+        options={{
+          presentation: "formSheet",
+          sheetAllowedDetents: [1.0],
+          sheetGrabberVisible: true,
+          contentStyle: { backgroundColor: colors.background },
+        }}
+      />
     </Stack>
   );
 }

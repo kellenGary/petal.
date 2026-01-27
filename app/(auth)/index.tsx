@@ -90,7 +90,7 @@ export default function SignInScreen() {
 
       <View style={styles.loginContent}>
         <View style={styles.contentWrapper}>
-          <Text style={[styles.title, { color: colors.text }]}>Welcome to MF</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Welcome to Petal</Text>
           <Text style={[styles.subtitle, { color: colors.text }]}>
             Connect your Spotify account to discover friends and share music
           </Text>

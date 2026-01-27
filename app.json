@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "MF",
-    "slug": "MF",
+    "name": "Petal",
+    "slug": "petal",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mf",
+    "scheme": "petal",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -48,7 +48,7 @@
         }
       ],
       [
-      "expo-location",
+        "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location.",
           "isIosBackgroundLocationEnabled": true,

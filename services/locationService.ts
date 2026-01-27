@@ -1,15 +1,17 @@
-import * as Location from 'expo-location';
-import * as TaskManager from 'expo-task-manager';
-import { Platform } from 'react-native';
+import * as Location from "expo-location";
+import * as TaskManager from "expo-task-manager";
+import { Platform } from "react-native";
 
 // Background task name for location tracking
-const BACKGROUND_LOCATION_TASK = 'background-location-task';
+const BACKGROUND_LOCATION_TASK = "background-location-task";
 
 // Store latest location in memory for quick access
 let cachedLocation: Location.LocationObject | null = null;
 
 // Callback for location updates (set by LocationContext)
-let locationUpdateCallback: ((location: Location.LocationObject) => void) | null = null;
+let locationUpdateCallback:
+  | ((location: Location.LocationObject) => void)
+  | null = null;
 
 /**
  * Define the background task that receives location updates.
@@ -17,7 +19,7 @@ let locationUpdateCallback: ((location: Location.LocationObject) => void) | null
  */
 TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
   if (error) {
-    console.error('[LocationService] Background location error:', error);
+    console.error("[LocationService] Background location error:", error);
     return;
   }
 
@@ -26,13 +28,13 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
     if (locations && locations.length > 0) {
       const latestLocation = locations[locations.length - 1];
       cachedLocation = latestLocation;
-      
+
       // Notify listeners
       if (locationUpdateCallback) {
         locationUpdateCallback(latestLocation);
       }
-      
-      console.log('[LocationService] Background location update:', {
+
+      console.log("[LocationService] Background location update:", {
         latitude: latestLocation.coords.latitude,
         longitude: latestLocation.coords.longitude,
       });
@@ -46,7 +48,9 @@ class LocationService {
   /**
    * Register a callback for location updates
    */
-  setLocationUpdateCallback(callback: (location: Location.LocationObject) => void) {
+  setLocationUpdateCallback(
+    callback: (location: Location.LocationObject) => void,
+  ) {
     locationUpdateCallback = callback;
   }
 
@@ -70,20 +74,22 @@ class LocationService {
    */
   async requestBackgroundPermission(): Promise<Location.PermissionStatus> {
     // First request foreground permission
-    const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
-    
-    if (foregroundStatus !== 'granted') {
-      console.warn('[LocationService] Foreground permission denied');
+    const { status: foregroundStatus } =
+      await Location.requestForegroundPermissionsAsync();
+
+    if (foregroundStatus !== "granted") {
+      console.warn("[LocationService] Foreground permission denied");
       return foregroundStatus;
     }
 
     // Then request background permission (required for "always" access)
-    const { status: backgroundStatus } = await Location.requestBackgroundPermissionsAsync();
-    
-    if (backgroundStatus !== 'granted') {
-      console.warn('[LocationService] Background permission denied');
+    const { status: backgroundStatus } =
+      await Location.requestBackgroundPermissionsAsync();
+
+    if (backgroundStatus !== "granted") {
+      console.warn("[LocationService] Background permission denied");
     }
-    
+
     return backgroundStatus;
   }
 
@@ -92,7 +98,7 @@ class LocationService {
    */
   async hasBackgroundPermission(): Promise<boolean> {
     const { status } = await Location.getBackgroundPermissionsAsync();
-    return status === 'granted';
+    return status === "granted";
   }
 
   /**
@@ -101,7 +107,7 @@ class LocationService {
    */
   async startBackgroundUpdates(): Promise<boolean> {
     if (this.isStarted) {
-      console.log('[LocationService] Background updates already started');
+      console.log("[LocationService] Background updates already started");
       return true;
     }
 
@@ -109,23 +115,27 @@ class LocationService {
       // Check if already tracking
       const isTaskDefined = TaskManager.isTaskDefined(BACKGROUND_LOCATION_TASK);
       if (!isTaskDefined) {
-        console.error('[LocationService] Background task not defined');
+        console.error("[LocationService] Background task not defined");
         return false;
       }
 
       const hasPermission = await this.hasBackgroundPermission();
       if (!hasPermission) {
-        console.warn('[LocationService] No background permission, requesting...');
+        console.warn(
+          "[LocationService] No background permission, requesting...",
+        );
         const status = await this.requestBackgroundPermission();
-        if (status !== 'granted') {
+        if (status !== "granted") {
           return false;
         }
       }
 
       // Check if already running
-      const isRegistered = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
+      const isRegistered = await Location.hasStartedLocationUpdatesAsync(
+        BACKGROUND_LOCATION_TASK,
+      );
       if (isRegistered) {
-        console.log('[LocationService] Background updates already running');
+        console.log("[LocationService] Background updates already running");
         this.isStarted = true;
         return true;
       }
@@ -138,19 +148,24 @@ class LocationService {
         deferredUpdatesInterval: 60000,
         showsBackgroundLocationIndicator: true, // iOS: show blue bar
         foregroundService: {
-          notificationTitle: 'MF is tracking your listening location',
-          notificationBody: 'Your listening history will be saved with location data',
-          notificationColor: '#FF5A5F',
+          notificationTitle: "Petal is tracking your listening location",
+          notificationBody:
+            "Your listening history will be saved with location data",
+          notificationColor: "#FF5A5F",
         },
         pausesUpdatesAutomatically: false,
-        activityType: Platform.OS === 'ios' ? Location.ActivityType.Other : undefined,
+        activityType:
+          Platform.OS === "ios" ? Location.ActivityType.Other : undefined,
       });
 
       this.isStarted = true;
-      console.log('[LocationService] Started background location updates');
+      console.log("[LocationService] Started background location updates");
       return true;
     } catch (error) {
-      console.error('[LocationService] Failed to start background updates:', error);
+      console.error(
+        "[LocationService] Failed to start background updates:",
+        error,
+      );
       return false;
     }
   }
@@ -160,14 +175,19 @@ class LocationService {
    */
   async stopBackgroundUpdates(): Promise<void> {
     try {
-      const isRegistered = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
+      const isRegistered = await Location.hasStartedLocationUpdatesAsync(
+        BACKGROUND_LOCATION_TASK,
+      );
       if (isRegistered) {
         await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
-        console.log('[LocationService] Stopped background location updates');
+        console.log("[LocationService] Stopped background location updates");
       }
       this.isStarted = false;
     } catch (error) {
-      console.error('[LocationService] Failed to stop background updates:', error);
+      console.error(
+        "[LocationService] Failed to stop background updates:",
+        error,
+      );
     }
   }
 
@@ -178,19 +198,21 @@ class LocationService {
   async getCurrentLocation(): Promise<Location.LocationObject | null> {
     try {
       const { status } = await Location.getForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        console.warn('[LocationService] No foreground permission for current location');
+      if (status !== "granted") {
+        console.warn(
+          "[LocationService] No foreground permission for current location",
+        );
         return cachedLocation;
       }
 
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
-      
+
       cachedLocation = location;
       return location;
     } catch (error) {
-      console.error('[LocationService] Failed to get current location:', error);
+      console.error("[LocationService] Failed to get current location:", error);
       return cachedLocation;
     }
   }
@@ -199,7 +221,10 @@ class LocationService {
    * Get current coordinates as a simple object.
    * Returns null if no location is available.
    */
-  async getCoordinates(): Promise<{ latitude: number; longitude: number } | null> {
+  async getCoordinates(): Promise<{
+    latitude: number;
+    longitude: number;
+  } | null> {
     // First try cached location
     if (cachedLocation) {
       return {

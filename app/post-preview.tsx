@@ -89,7 +89,7 @@ export default function PostPreviewScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
-        style={styles.container}
+        style={[styles.container, {backgroundColor: colors.background}]}
         contentContainerStyle={styles.contentContainer}
         keyboardShouldPersistTaps="handled"
       >

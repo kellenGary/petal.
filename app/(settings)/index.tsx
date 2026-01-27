@@ -161,7 +161,7 @@ export default function SettingsPage() {
             iconColor="#1DB954"
             label="Connected Accounts"
             sublabel="Spotify"
-            onPress={() => {}}
+            onPress={() => { }}
             isLast
           />
         </SettingsSection>
@@ -262,7 +262,7 @@ export default function SettingsPage() {
         {/* App Version */}
         <View style={styles.versionContainer}>
           <Text style={[styles.versionText, { color: colors.icon }]}>
-            MF App v1.0.0
+            Petal App v1.0.0
           </Text>
         </View>
 

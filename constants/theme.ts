@@ -32,6 +32,10 @@ export const Colors = {
     card: '#252527',
     gradient: ['#151718ff', '#151718ff', '#1E1F21ff', '#151718ff'],
   },
+  likeButton: {
+    liked: '#fd4040ff',
+    unliked: '#f2f2f2ff',
+  },
 };
 
 export const Fonts = Platform.select({

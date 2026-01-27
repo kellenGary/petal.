@@ -19,26 +19,41 @@ export default function TabLayout() {
       >
         <NativeTabs.Trigger name="index">
           <Label hidden />
-          <Icon sf="house.fill" drawable="custom_android_drawable" />
+          <Icon
+            sf={{ default: "house", selected: "house.fill" }}
+            drawable="custom_android_drawable"
+          />
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="map">
           <Label hidden />
-          <Icon sf="map.fill" drawable="custom_settings_drawable" />
+          <Icon
+            sf={{ default: "map", selected: "map.fill" }}
+            drawable="custom_settings_drawable"
+          />
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="post">
           <Label hidden />
-          <Icon sf="plus.circle.fill" drawable="custom_settings_drawable" />
+          <Icon
+            sf={{ default: "plus.circle", selected: "plus.circle.fill" }}
+            drawable="custom_settings_drawable"
+          />
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="explore">
           <Label hidden />
           <Icon
-            sf="magnifyingglass.circle.fill"
+            sf={{
+              default: "magnifyingglass.circle",
+              selected: "magnifyingglass.circle.fill",
+            }}
             drawable="custom_settings_drawable"
           />
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="profile">
           <Label hidden />
-          <Icon sf="person.fill" drawable="custom_settings_drawable" />
+          <Icon
+            sf={{ default: "person", selected: "person.fill" }}
+            drawable="custom_settings_drawable"
+          />
         </NativeTabs.Trigger>
       </NativeTabs>
       <View style={styles.miniPlayerWrapper} pointerEvents="box-none">
