@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -17,9 +18,9 @@ export default function SectionHeader({
 
   return (
     <View style={styles.sectionHeader}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>{title}</Text>
+      <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>{title}</ThemedText>
       <Pressable onPress={onSeeAllPress}>
-        <Text style={[styles.seeAll, { color: colors.tint }]}>See All</Text>
+        <ThemedText style={[styles.seeAll, { color: colors.tint }]}>See All</ThemedText>
       </Pressable>
     </View>
   );

@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import feedApi, { FeedPost } from "@/services/feedApi";
@@ -33,7 +34,7 @@ export default function SharedPlaylistPost({ item }: SharedPlaylistPostProps) {
       <PostHeader user={item.user} timeAgo={timeAgo} />
 
       {caption && (
-        <Text style={[styles.caption, { color: colors.text }]}>{caption}</Text>
+        <ThemedText style={[styles.caption, { color: colors.text }]}>{caption}</ThemedText>
       )}
 
       <View
@@ -46,18 +47,18 @@ export default function SharedPlaylistPost({ item }: SharedPlaylistPostProps) {
           style={styles.playlistImage}
         />
         <View style={styles.playlistInfo}>
-          <Text style={[styles.playlistLabel, { color: colors.text }]}>
+          <ThemedText style={[styles.playlistLabel, { color: colors.text }]}>
             PLAYLIST
-          </Text>
-          <Text
+          </ThemedText>
+          <ThemedText
             style={[styles.playlistName, { color: colors.text }]}
             numberOfLines={2}
           >
             {playlist.name}
-          </Text>
+          </ThemedText>
         </View>
         <View style={[styles.playIcon, { backgroundColor: colors.primary }]}>
-          <Text style={styles.playIconText}>▶</Text>
+          <ThemedText style={styles.playIconText}>▶</ThemedText>
         </View>
       </View>
     </Pressable>

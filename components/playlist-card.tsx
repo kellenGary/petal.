@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -26,18 +27,18 @@ export default function PlaylistCard({ playlist, onPress }: PlaylistCardProps) {
           { backgroundColor: colors.tabIconDefault },
         ]}
       />
-      <Text
+      <ThemedText
         style={[styles.gridCardTitle, { color: colors.text }]}
         numberOfLines={2}
       >
         {playlist.name || "Unknown Playlist"}
-      </Text>
-      <Text
+      </ThemedText>
+      <ThemedText
         style={[styles.gridCardSubtitle, { color: colors.tabIconDefault }]}
         numberOfLines={1}
       >
         {playlist.trackCount || 0} songs
-      </Text>
+      </ThemedText>
     </Pressable>
   );
 }

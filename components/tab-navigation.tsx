@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Dispatch, SetStateAction, useState } from "react";
 import { Pressable, StyleSheet, Text } from "react-native";
 import { Colors } from "@/constants/theme";
@@ -26,11 +27,11 @@ export default function TabNavigation({
           style={[styles.tab, activeTab === tab && styles.activeTab, { borderBottomColor: colors.primary }]}
           onPress={() => setActiveTab(tab)}
         >
-          <Text
+          <ThemedText
             style={[styles.tabText, activeTab === tab && styles.activeTabText, { color: activeTab === tab ? colors.primary : colors.text }]}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
-          </Text>
+          </ThemedText>
         </Pressable>
       ))}
     </>

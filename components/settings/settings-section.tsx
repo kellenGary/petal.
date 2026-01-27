@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ReactNode } from "react";
@@ -21,9 +22,9 @@ export function SettingsSection({
   return (
     <View style={styles.container}>
       {title && (
-        <Text style={[styles.title, { color: colors.icon }]}>
+        <ThemedText style={[styles.title, { color: colors.icon }]}>
           {title.toUpperCase()}
-        </Text>
+        </ThemedText>
       )}
       <View
         style={[
@@ -37,7 +38,7 @@ export function SettingsSection({
         {children}
       </View>
       {footer && (
-        <Text style={[styles.footer, { color: colors.icon }]}>{footer}</Text>
+        <ThemedText style={[styles.footer, { color: colors.icon }]}>{footer}</ThemedText>
       )}
     </View>
   );

@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { RelativePathString, router } from "expo-router";
@@ -138,7 +139,7 @@ export default function SettingsPage() {
         <Pressable onPress={() => router.back()} style={styles.headerButton}>
           <MaterialIcons name="arrow-back" size={24} color={colors.icon} />
         </Pressable>
-        <Text style={[styles.title, { color: colors.text }]}>Settings</Text>
+        <ThemedText style={[styles.title, { color: colors.text }]}>Settings</ThemedText>
         <View style={styles.headerRight} />
       </View>
 
@@ -261,9 +262,9 @@ export default function SettingsPage() {
 
         {/* App Version */}
         <View style={styles.versionContainer}>
-          <Text style={[styles.versionText, { color: colors.icon }]}>
+          <ThemedText style={[styles.versionText, { color: colors.icon }]}>
             Petal App v1.0.0
-          </Text>
+          </ThemedText>
         </View>
 
         {/* Bottom padding */}

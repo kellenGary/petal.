@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -51,15 +52,15 @@ export default function SOTDProfile({
         style={styles.albumImage}
       />
       <View style={styles.textContainer}>
-        <Text style={[styles.label, { color: colors.text }]} numberOfLines={1}>
+        <ThemedText style={[styles.label, { color: colors.text }]} numberOfLines={1}>
           Song of the Day
-        </Text>
-        <Text
+        </ThemedText>
+        <ThemedText
           style={[styles.trackName, { color: colors.text }]}
           numberOfLines={1}
         >
           {track.name}
-        </Text>
+        </ThemedText>
       </View>
       <MaterialIcons
         name="music-note"
@@ -77,9 +78,9 @@ export default function SOTDProfile({
       ]}
     >
       <MaterialIcons name="add" size={14} color={colors.text} />
-      <Text style={[styles.addText, { color: colors.text }]}>
+      <ThemedText style={[styles.addText, { color: colors.text }]}>
         Add Song of the Day
-      </Text>
+      </ThemedText>
     </View>
   ) : null;
 

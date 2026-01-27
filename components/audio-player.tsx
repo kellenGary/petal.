@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { usePlayback } from "@/contexts/playbackContext";
 import spotifyApi from "@/services/spotifyApi";
@@ -98,9 +99,9 @@ export default function AudioPlayer() {
           color={colors.text}
           style={{ opacity: 0.5, marginBottom: 16 }}
         />
-        <Text style={[styles.emptyText, { color: colors.text }]}>
+        <ThemedText style={[styles.emptyText, { color: colors.text }]}>
           Not currently playing anything
-        </Text>
+        </ThemedText>
       </View>
     );
   }
@@ -139,12 +140,12 @@ export default function AudioPlayer() {
         {/* Track Info */}
         <View style={styles.infoContainer}>
           <View style={styles.titleWrapper}>
-            <Text style={styles.title} numberOfLines={1}>
+            <ThemedText style={styles.title} numberOfLines={1}>
               {track?.name}
-            </Text>
-            <Text style={styles.artist} numberOfLines={1}>
+            </ThemedText>
+            <ThemedText style={styles.artist} numberOfLines={1}>
               {artistNames}
-            </Text>
+            </ThemedText>
           </View>
           <Pressable
             onPress={() => track?.id && handleLikePress(track.id)}
@@ -166,8 +167,8 @@ export default function AudioPlayer() {
             />
           </View>
           <View style={styles.timeLabels}>
-            <Text style={styles.timeText}>{formatTime(currentProgressMs)}</Text>
-            <Text style={styles.timeText}>{formatTime(duration)}</Text>
+            <ThemedText style={styles.timeText}>{formatTime(currentProgressMs)}</ThemedText>
+            <ThemedText style={styles.timeText}>{formatTime(duration)}</ThemedText>
           </View>
         </View>
 
@@ -216,7 +217,7 @@ export default function AudioPlayer() {
             />
             {playbackState.repeat_state === "track" && (
               <View style={styles.repeatBadge}>
-                <Text style={styles.repeatBadgeText}>1</Text>
+                <ThemedText style={styles.repeatBadgeText}>1</ThemedText>
               </View>
             )}
           </Pressable>

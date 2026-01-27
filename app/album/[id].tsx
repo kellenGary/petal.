@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { BlurBackButton, StatsRow } from "@/components/media";
 import SongItem from "@/components/song-item";
 import ErrorScreen from "@/components/ui/ErrorScreen";
@@ -112,14 +113,14 @@ export default function AlbumScreen() {
 
           {/* Album Info */}
           <View style={styles.albumInfo}>
-            <Text
+            <ThemedText
               style={[styles.albumName, { color: "#fff" }]}
               numberOfLines={2}
             >
               {album.name}
-            </Text>
+            </ThemedText>
 
-            <Text
+            <ThemedText
               style={[
                 styles.artistName,
                 {
@@ -131,7 +132,7 @@ export default function AlbumScreen() {
             >
               {album.artists?.map((a: any) => a.name).join(", ") ||
                 "Unknown Artist"}
-            </Text>
+            </ThemedText>
 
             <StatsRow
               trackCount={tracks.length}
@@ -142,7 +143,7 @@ export default function AlbumScreen() {
             />
 
             {album.release_date && (
-              <Text
+              <ThemedText
                 style={[
                   styles.releaseDate,
                   {
@@ -153,7 +154,7 @@ export default function AlbumScreen() {
                 ]}
               >
                 {new Date(album.release_date).getFullYear()}
-              </Text>
+              </ThemedText>
             )}
           </View>
         </View>
@@ -166,9 +167,9 @@ export default function AlbumScreen() {
           ]}
         >
           <View style={styles.trackListHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
               Tracks
-            </Text>
+            </ThemedText>
           </View>
 
           <View style={styles.trackList}>

@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import FilterBubble from "@/components/filter-bubble";
 import SelectableItem from "@/components/selectable-item";
 import { Colors } from "@/constants/theme";
@@ -121,9 +122,9 @@ export default function PostScreen() {
       return (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.text }]}>
+          <ThemedText style={[styles.loadingText, { color: colors.text }]}>
             Loading your {activeFilter.toLowerCase()}s...
-          </Text>
+          </ThemedText>
         </View>
       );
     }
@@ -164,9 +165,9 @@ export default function PostScreen() {
             );
           })
         ) : (
-          <Text style={[styles.emptyText, { color: colors.text }]}>
+          <ThemedText style={[styles.emptyText, { color: colors.text }]}>
             No recent songs found
-          </Text>
+          </ThemedText>
         );
       case "Liked Song":
         const filteredLikedSongs = searchItems(
@@ -203,9 +204,9 @@ export default function PostScreen() {
             );
           })
         ) : (
-          <Text style={[styles.emptyText, { color: colors.text }]}>
+          <ThemedText style={[styles.emptyText, { color: colors.text }]}>
             No liked songs found
-          </Text>
+          </ThemedText>
         );
 
       case "Album":
@@ -243,9 +244,9 @@ export default function PostScreen() {
             );
           })
         ) : (
-          <Text style={[styles.emptyText, { color: colors.text }]}>
+          <ThemedText style={[styles.emptyText, { color: colors.text }]}>
             No liked albums found
-          </Text>
+          </ThemedText>
         );
 
       case "Playlist":
@@ -280,9 +281,9 @@ export default function PostScreen() {
             );
           })
         ) : (
-          <Text style={[styles.emptyText, { color: colors.text }]}>
+          <ThemedText style={[styles.emptyText, { color: colors.text }]}>
             No playlists found
-          </Text>
+          </ThemedText>
         );
 
       case "Artist":
@@ -320,9 +321,9 @@ export default function PostScreen() {
             );
           })
         ) : (
-          <Text style={[styles.emptyText, { color: colors.text }]}>
+          <ThemedText style={[styles.emptyText, { color: colors.text }]}>
             No followed artists found
-          </Text>
+          </ThemedText>
         );
 
       default:
@@ -333,7 +334,7 @@ export default function PostScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text }]}>Make a Post</Text>
+        <ThemedText style={[styles.title, { color: colors.text }]}>Make a Post</ThemedText>
         {/* Continue Button */}
         {selectedContent && (
           <View style={[styles.bottomBar]}>

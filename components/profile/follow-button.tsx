@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import followApi from "@/services/followApi";
@@ -69,14 +70,14 @@ export default function FollowButton({
           color={isFollowing ? colors.text : "#fff"}
         />
       ) : (
-        <Text
+        <ThemedText
           style={[
             styles.profileFollowButtonText,
             { color: isFollowing ? colors.text : "#fff" },
           ]}
         >
           {isFollowing ? "Following" : "Follow"}
-        </Text>
+        </ThemedText>
       )}
     </Pressable>
   );

@@ -1,6 +1,8 @@
 import { Colors } from "@/constants/theme";
+import { ThemedText } from "./themed-text";
 import React, { useEffect, useMemo } from "react";
-import { Image, StyleSheet, useColorScheme, View } from "react-native";
+import { Image } from "expo-image";
+import { StyleSheet, useColorScheme, View } from "react-native";
 import Animated, {
   cancelAnimation,
   Easing,
@@ -152,12 +154,13 @@ export default function RingCarousel({
         style={[
           styles.centerIconContainer,
           {
-            left: centerX - CENTER_ICON_SIZE / 2,
-            top: centerY - CENTER_ICON_SIZE / 2,
+            left: centerX - CENTER_ICON_SIZE + 70/ 2,
+            top: centerY - CENTER_ICON_SIZE + 80/ 2,
           },
         ]}
       >
-        <Image source={AppIcon} style={styles.centerIcon} />
+        <ThemedText type="title">petal.</ThemedText>
+        <ThemedText>Discover what the world is listening to, one song at a time.</ThemedText>
       </View>
 
       {/* Spinning track items */}
@@ -185,8 +188,7 @@ const styles = StyleSheet.create({
   },
   centerIconContainer: {
     position: "absolute",
-    width: CENTER_ICON_SIZE,
-    height: CENTER_ICON_SIZE,
+    width: CENTER_ICON_SIZE + 50,
     zIndex: 500, // Between front and back of the ring
   },
   centerIcon: {

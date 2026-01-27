@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { usePlayback } from "@/contexts/playbackContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -57,19 +58,19 @@ export default function SongItem({
     >
       <Image source={{ uri: cover }} style={styles.songCover} />
       <View style={styles.songInfo}>
-        <Text style={[styles.songTitle, { color: colors.text }]}>{title}</Text>
-        <Text style={[styles.songArtist, { color: colors.text, opacity: 0.7 }]}>
+        <ThemedText style={[styles.songTitle, { color: colors.text }]}>{title}</ThemedText>
+        <ThemedText style={[styles.songArtist, { color: colors.text, opacity: 0.7 }]}>
           {artist}
-        </Text>
+        </ThemedText>
       </View>
 
       <View style={styles.leftSide}>
         {streak && streak > 1 ? (
           <View style={styles.streakContainer}>
             <AntDesign name="fire" size={24} color="#FF6B35" />
-            <Text style={[styles.streakText, { color: colors.background }]}>
+            <ThemedText style={[styles.streakText, { color: colors.background }]}>
               {streak}
-            </Text>
+            </ThemedText>
           </View>
         ) : null}
         {isActive ? (

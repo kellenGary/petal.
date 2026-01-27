@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import postApi, { SelectedContent } from "@/services/postApi";
@@ -98,9 +99,9 @@ export default function PostPreviewScreen() {
           <Pressable onPress={() => router.back()} style={styles.backButton}>
             <MaterialIcons name="arrow-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.title, { color: colors.text }]}>
+          <ThemedText style={[styles.title, { color: colors.text }]}>
             Share {getPostTypeLabel()}
-          </Text>
+          </ThemedText>
           <View style={{ width: 40 }} />
         </View>
 
@@ -112,25 +113,25 @@ export default function PostPreviewScreen() {
             placeholder={require("@/assets/images/icon.png")}
           />
           <View style={styles.previewInfo}>
-            <Text style={[styles.previewName, { color: colors.text }]} numberOfLines={2}>
+            <ThemedText style={[styles.previewName, { color: colors.text }]} numberOfLines={2}>
               {selectedContent.name}
-            </Text>
-            <Text style={[styles.previewSubtitle, { color: colors.text, opacity: 0.7 }]} numberOfLines={1}>
+            </ThemedText>
+            <ThemedText style={[styles.previewSubtitle, { color: colors.text, opacity: 0.7 }]} numberOfLines={1}>
               {selectedContent.subtitle}
-            </Text>
+            </ThemedText>
             <View style={[styles.typeBadge, { backgroundColor: colors.primary + "30" }]}>
-              <Text style={[styles.typeBadgeText, { color: colors.primary }]}>
+              <ThemedText style={[styles.typeBadgeText, { color: colors.primary }]}>
                 {getPostTypeLabel()}
-              </Text>
+              </ThemedText>
             </View>
           </View>
         </View>
 
         {/* Caption Input */}
         <View style={styles.captionSection}>
-          <Text style={[styles.captionLabel, { color: colors.text }]}>
+          <ThemedText style={[styles.captionLabel, { color: colors.text }]}>
             Add a caption (optional)
-          </Text>
+          </ThemedText>
           <TextInput
             style={[
               styles.captionInput,
@@ -148,9 +149,9 @@ export default function PostPreviewScreen() {
             maxLength={280}
             textAlignVertical="top"
           />
-          <Text style={[styles.charCount, { color: colors.icon }]}>
+          <ThemedText style={[styles.charCount, { color: colors.icon }]}>
             {caption.length}/280
-          </Text>
+          </ThemedText>
         </View>
 
         {/* Post Button */}
@@ -168,7 +169,7 @@ export default function PostPreviewScreen() {
           ) : (
             <>
               <MaterialIcons name="send" size={20} color="white" />
-              <Text style={styles.postButtonText}>Post</Text>
+              <ThemedText style={styles.postButtonText}>Post</ThemedText>
             </>
           )}
         </Pressable>

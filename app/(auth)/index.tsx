@@ -1,4 +1,5 @@
 import RingCarousel from "@/components/RingCarousel";
+import { ThemedText } from '@/components/themed-text';
 import { CLIENT_ID, REDIRECT_URI, SCOPES } from "@/constants/auth";
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,9 +12,8 @@ import {
   Dimensions,
   Pressable,
   StyleSheet,
-  Text,
   useColorScheme,
-  View,
+  View
 } from "react-native";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -35,10 +35,10 @@ export default function SignInScreen() {
   }, []);
 
   const handleSpotifyCallback = async (url: string) => {
-    if (!url.startsWith("mf://callback")) return;
+    if (!url.startsWith(REDIRECT_URI)) return;
 
     const urlParams = new URL(
-      url.replace("mf://callback/?", "http://dummy.com/?"),
+      url.replace(`${REDIRECT_URI}?`, "http://dummy.com/?").replace(`${REDIRECT_URI}/?`, "http://dummy.com/?"),
     );
     const code = urlParams.searchParams.get("code");
     const state = urlParams.searchParams.get("state");
@@ -74,7 +74,7 @@ export default function SignInScreen() {
   }
 
   const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
-  const carouselHeight = screenHeight * 0.75;
+  const carouselHeight = screenHeight * 0.8;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -90,10 +90,9 @@ export default function SignInScreen() {
 
       <View style={styles.loginContent}>
         <View style={styles.contentWrapper}>
-          <Text style={[styles.title, { color: colors.text }]}>Welcome to Petal</Text>
-          <Text style={[styles.subtitle, { color: colors.text }]}>
+          <ThemedText style={styles.subtitle} type="small">
             Connect your Spotify account to discover friends and share music
-          </Text>
+          </ThemedText>
           <Pressable
             style={({ pressed }) => [
               styles.button,
@@ -107,12 +106,12 @@ export default function SignInScreen() {
               end={{ x: 1, y: 0 }}
               style={styles.buttonGradient}
             >
-              <Text style={styles.buttonText}>Continue with Spotify</Text>
+              <ThemedText style={styles.buttonText}>Continue with Spotify</ThemedText>
             </LinearGradient>
           </Pressable>
-          <Text style={[styles.footerText, { color: colors.text }]}>
+          <ThemedText style={[styles.footerText, { color: colors.text }]}>
             By continuing, you agree to share your Spotify data
-          </Text>
+          </ThemedText>
         </View>
       </View>
     </View>
@@ -175,12 +174,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   subtitle: {
-    fontSize: 15,
-    color: "rgba(255, 255, 255, 0.7)",
-    marginBottom: 36,
+    marginBottom: 12,
     textAlign: "center",
-    lineHeight: 22,
-    paddingHorizontal: 20,
+    lineHeight: 20,
+    paddingHorizontal: 24,
   },
   button: {
     width: "100%",
@@ -211,7 +208,7 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 12,
     color: "rgba(255, 255, 255, 0.5)",
-    marginTop: 24,
+    marginTop: 16,
     textAlign: "center",
     paddingHorizontal: 40,
     lineHeight: 18,

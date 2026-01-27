@@ -1,6 +1,6 @@
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 interface AlbumCardProps {
   album: {
@@ -23,18 +23,18 @@ export default function AlbumCard({ album, onPress }: AlbumCardProps) {
       <View
         style={[styles.albumCover, { backgroundColor: colors.tabIconDefault }]}
       />
-      <Text
+      <ThemedText
         style={[styles.gridCardTitle, { color: colors.text }]}
         numberOfLines={2}
       >
         {album.title || "Unknown Album"}
-      </Text>
-      <Text
+      </ThemedText>
+      <ThemedText
         style={[styles.gridCardSubtitle, { color: colors.tabIconDefault }]}
         numberOfLines={1}
       >
         {album.artist || "Unknown Artist"}
-      </Text>
+      </ThemedText>
     </Pressable>
   );
 }

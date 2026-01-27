@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Image } from "expo-image";
@@ -60,25 +61,25 @@ export default function UserCard({
             contentFit="cover"
           />
         ) : (
-          <Text style={styles.avatarText}>
+          <ThemedText style={styles.avatarText}>
             {user?.displayName?.[0]?.toUpperCase() || "?"}
-          </Text>
+          </ThemedText>
         )}
       </View>
       <View style={styles.textContainer}>
-        <Text
+        <ThemedText
           style={[styles.userName, { color: colors.text }]}
           numberOfLines={1}
         >
           {user.displayName}
-        </Text>
+        </ThemedText>
         {user.handle && (
-          <Text
+          <ThemedText
             style={[styles.userHandle, { color: colors.tabIconDefault }]}
             numberOfLines={1}
           >
             @{user.handle}
-          </Text>
+          </ThemedText>
         )}
       </View>
       <Pressable
@@ -102,7 +103,7 @@ export default function UserCard({
             color={isFollowing ? colors.text : "#fff"}
           />
         ) : (
-          <Text
+          <ThemedText
             style={[
               styles.followButtonText,
               { color: isFollowing ? colors.text : "#fff" },
@@ -110,7 +111,7 @@ export default function UserCard({
             numberOfLines={1}
           >
             {isFollowing ? "Following" : "Follow"}
-          </Text>
+          </ThemedText>
         )}
       </Pressable>
     </Pressable>

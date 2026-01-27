@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -101,21 +102,21 @@ export default function ProfileEditor() {
         <Pressable onPress={onCancel} style={styles.headerButton}>
           <MaterialIcons name="arrow-back" size={24} color={colors.icon} />
         </Pressable>
-        <Text style={[styles.title, { color: colors.text }]}>Edit Profile</Text>
+        <ThemedText style={[styles.title, { color: colors.text }]}>Edit Profile</ThemedText>
         <View style={styles.headerRight}>
           <Pressable
             onPress={onSave}
             style={[styles.saveButton, { backgroundColor: colors.card }]}
           >
-            <Text style={[styles.saveText, { color: Colors.light.text }]}>
+            <ThemedText style={[styles.saveText, { color: Colors.light.text }]}>
               Save
-            </Text>
+            </ThemedText>
           </Pressable>
         </View>
       </View>
       {error && (
         <View style={styles.errorContainer}>
-          <Text style={{ color: "#cc0000", textAlign: "center" }}>{error}</Text>
+          <ThemedText style={{ color: "#cc0000", textAlign: "center" }}>{error}</ThemedText>
         </View>
       )}
 
@@ -130,12 +131,12 @@ export default function ProfileEditor() {
               />
             </View>
             <View style={styles.previewText}>
-              <Text style={[styles.profileName, { color: colors.text }]}>
+              <ThemedText style={[styles.profileName, { color: colors.text }]}>
                 {displayName || user?.displayName || "Your Name"}
-              </Text>
-              <Text style={[styles.handleText, { color: colors.text }]}>
+              </ThemedText>
+              <ThemedText style={[styles.handleText, { color: colors.text }]}>
                 @{handle || user?.handle || "handle"}
-              </Text>
+              </ThemedText>
             </View>
           </View>
         </View>
@@ -171,14 +172,14 @@ export default function ProfileEditor() {
               color="#fff"
               style={{ marginRight: 8 }}
             />
-            <Text style={[styles.editPictureText, { color: "#fff" }]}>
+            <ThemedText style={[styles.editPictureText, { color: "#fff" }]}>
               Edit picture
-            </Text>
+            </ThemedText>
           </Pressable>
           <View>
-            <Text style={[styles.label, { color: colors.text }]}>
+            <ThemedText style={[styles.label, { color: colors.text }]}>
               Display name
-            </Text>
+            </ThemedText>
             <TextInput
               value={displayName || ""}
               onChangeText={setDisplayName}
@@ -199,7 +200,7 @@ export default function ProfileEditor() {
           </View>
 
           <View>
-            <Text style={[styles.label, { color: colors.text }]}>Handle</Text>
+            <ThemedText style={[styles.label, { color: colors.text }]}>Handle</ThemedText>
             <TextInput
               value={handle || ""}
               onChangeText={setHandle}
@@ -220,7 +221,7 @@ export default function ProfileEditor() {
           </View>
 
           <View>
-            <Text style={[styles.label, { color: colors.text }]}>Bio</Text>
+            <ThemedText style={[styles.label, { color: colors.text }]}>Bio</ThemedText>
             <TextInput
               value={bio || ""}
               onChangeText={setBio}

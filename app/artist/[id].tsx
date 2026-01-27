@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import artistApi, { Album, Artist, Track } from "@/services/artistApi";
 import playbackApi from "@/services/playbackApi";
@@ -103,9 +104,9 @@ export default function ArtistScreen() {
         style={[styles.errorContainer, { backgroundColor: colors.background }]}
       >
         <MaterialIcons name="person-off" size={48} color={colors.icon} />
-        <Text style={[styles.errorText, { color: colors.text }]}>
+        <ThemedText style={[styles.errorText, { color: colors.text }]}>
           {error || "Artist not found"}
-        </Text>
+        </ThemedText>
       </View>
     );
   }
@@ -127,30 +128,30 @@ export default function ArtistScreen() {
           style={styles.artistImage}
           contentFit="cover"
         />
-        <Text style={[styles.artistName, { color: colors.text }]}>
+        <ThemedText style={[styles.artistName, { color: colors.text }]}>
           {artist.name}
-        </Text>
+        </ThemedText>
         {artist.genres?.length > 0 && (
-          <Text style={[styles.genres, { color: colors.icon }]}>
+          <ThemedText style={[styles.genres, { color: colors.icon }]}>
             {artist.genres.slice(0, 3).join(" • ")}
-          </Text>
+          </ThemedText>
         )}
         <View style={styles.statsRow}>
           <View style={styles.stat}>
-            <Text style={[styles.statValue, { color: colors.text }]}>
+            <ThemedText style={[styles.statValue, { color: colors.text }]}>
               {formatFollowers(artist.followers?.total || 0)}
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.icon }]}>
+            </ThemedText>
+            <ThemedText style={[styles.statLabel, { color: colors.icon }]}>
               Followers
-            </Text>
+            </ThemedText>
           </View>
           <View style={styles.stat}>
-            <Text style={[styles.statValue, { color: colors.text }]}>
+            <ThemedText style={[styles.statValue, { color: colors.text }]}>
               {artist.popularity}
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.icon }]}>
+            </ThemedText>
+            <ThemedText style={[styles.statLabel, { color: colors.icon }]}>
               Popularity
-            </Text>
+            </ThemedText>
           </View>
         </View>
       </View>
@@ -158,9 +159,9 @@ export default function ArtistScreen() {
       {/* Top Tracks Section */}
       {topTracks.length > 0 && (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
             Top Tracks
-          </Text>
+          </ThemedText>
           <View style={[styles.trackList, { backgroundColor: colors.card }]}>
             {topTracks.slice(0, 5).map((track, index) => (
               <Pressable
@@ -168,9 +169,9 @@ export default function ArtistScreen() {
                 style={styles.trackItem}
                 onPress={() => handleTrackPress(track.id)}
               >
-                <Text style={[styles.trackIndex, { color: colors.icon }]}>
+                <ThemedText style={[styles.trackIndex, { color: colors.icon }]}>
                   {index + 1}
-                </Text>
+                </ThemedText>
                 <Image
                   source={{
                     uri:
@@ -181,22 +182,22 @@ export default function ArtistScreen() {
                   style={styles.trackAlbumArt}
                 />
                 <View style={styles.trackInfo}>
-                  <Text
+                  <ThemedText
                     style={[styles.trackName, { color: colors.text }]}
                     numberOfLines={1}
                   >
                     {track.name}
-                  </Text>
-                  <Text
+                  </ThemedText>
+                  <ThemedText
                     style={[styles.trackAlbum, { color: colors.icon }]}
                     numberOfLines={1}
                   >
                     {track.album?.name}
-                  </Text>
+                  </ThemedText>
                 </View>
-                <Text style={[styles.trackDuration, { color: colors.icon }]}>
+                <ThemedText style={[styles.trackDuration, { color: colors.icon }]}>
                   {formatDuration(track.duration_ms)}
-                </Text>
+                </ThemedText>
                 <Pressable
                   style={styles.playButton}
                   onPress={() => handlePlayTrack(track.id)}
@@ -217,9 +218,9 @@ export default function ArtistScreen() {
       {/* Albums Section */}
       {albums.length > 0 && (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
             Albums & Singles
-          </Text>
+          </ThemedText>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -237,15 +238,15 @@ export default function ArtistScreen() {
                   }}
                   style={styles.albumImage}
                 />
-                <Text
+                <ThemedText
                   style={[styles.albumName, { color: colors.text }]}
                   numberOfLines={2}
                 >
                   {album.name}
-                </Text>
-                <Text style={[styles.albumYear, { color: colors.icon }]}>
+                </ThemedText>
+                <ThemedText style={[styles.albumYear, { color: colors.icon }]}>
                   {album.release_date?.split("-")[0]} • {album.album_type}
-                </Text>
+                </ThemedText>
               </Pressable>
             ))}
           </ScrollView>

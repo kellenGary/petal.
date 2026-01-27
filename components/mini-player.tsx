@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlayback } from "@/contexts/playbackContext";
 import { Ionicons } from "@expo/vector-icons";
@@ -57,18 +58,18 @@ export default function MiniPlayer() {
 
             {/* Track Info */}
             <View style={styles.trackInfo}>
-              <Text
+              <ThemedText
                 style={[styles.trackName, { color: isDark ? "#fff" : "#000" }]}
                 numberOfLines={1}
               >
                 {track.name}
-              </Text>
-              <Text
+              </ThemedText>
+              <ThemedText
                 style={[styles.artistName, { color: isDark ? "#aaa" : "#666" }]}
                 numberOfLines={1}
               >
                 {artistNames}
-              </Text>
+              </ThemedText>
             </View>
 
             {/* Playback Status Indicator */}

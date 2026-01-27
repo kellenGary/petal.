@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -17,25 +18,25 @@ export default function AlbumItem({ group }: { group: any }) {
           style={styles.albumGroupCover}
         />
         <View style={styles.albumGroupInfo}>
-          <Text style={[styles.albumGroupName, { color: colors.text }]}>
+          <ThemedText style={[styles.albumGroupName, { color: colors.text }]}>
             {group.albumName}
-          </Text>
-          <Text
+          </ThemedText>
+          <ThemedText
             style={[
               styles.albumGroupArtist,
               { color: colors.text, opacity: 0.7 },
             ]}
           >
             {group.artists.map((a: any) => a.name).join(", ")}
-          </Text>
-          <Text
+          </ThemedText>
+          <ThemedText
             style={[
               styles.albumGroupCount,
               { color: colors.text, opacity: 0.4 },
             ]}
           >
             {group.tracks.length} tracks played
-          </Text>
+          </ThemedText>
         </View>
         <MaterialIcons
           name="chevron-right"
@@ -59,9 +60,9 @@ export default function AlbumItem({ group }: { group: any }) {
                 router.push(`/song/${track.id}` as RelativePathString)
               }
             >
-              <Text style={[styles.albumTrackName, { color: colors.text }]}>
+              <ThemedText style={[styles.albumTrackName, { color: colors.text }]}>
                 {track.name}
-              </Text>
+              </ThemedText>
             </Pressable>
           </View>
         ))}

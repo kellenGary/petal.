@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Image } from "expo-image";
 import React, { memo } from "react";
@@ -49,9 +50,9 @@ function ClusteredMapMarkerComponent<T>({
         </View>
         {cluster.count > 1 && (
           <View style={styles.clusterBadge}>
-            <Text style={styles.clusterBadgeText}>
+            <ThemedText style={styles.clusterBadgeText}>
               {cluster.count > 99 ? "99+" : cluster.count}
-            </Text>
+            </ThemedText>
           </View>
         )}
       </View>

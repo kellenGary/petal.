@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import SongItem from "@/components/song-item";
 import { Colors } from "@/constants/theme";
 import spotifyApi from "@/services/spotifyApi";
@@ -151,9 +152,9 @@ export default function PlaylistScreen() {
       >
         <View style={styles.loaderWrapper}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.text }]}>
+          <ThemedText style={[styles.loadingText, { color: colors.text }]}>
             Loading playlist...
-          </Text>
+          </ThemedText>
         </View>
       </View>
     );
@@ -166,14 +167,14 @@ export default function PlaylistScreen() {
         style={[styles.errorContainer, { backgroundColor: colors.background }]}
       >
         <Ionicons name="musical-notes-outline" size={64} color={colors.icon} />
-        <Text style={[styles.errorText, { color: colors.text }]}>
+        <ThemedText style={[styles.errorText, { color: colors.text }]}>
           Playlist not found
-        </Text>
+        </ThemedText>
         <Pressable
           style={[styles.backButton, { backgroundColor: colors.primary }]}
           onPress={() => router.back()}
         >
-          <Text style={styles.backButtonText}>Go Back</Text>
+          <ThemedText style={styles.backButtonText}>Go Back</ThemedText>
         </Pressable>
       </View>
     );
@@ -250,15 +251,15 @@ export default function PlaylistScreen() {
 
               {/* Playlist Info */}
               <View style={styles.playlistInfo}>
-                <Text
+                <ThemedText
                   style={[styles.playlistName, { color: colors.text }]}
                   numberOfLines={2}
                 >
                   {playlist.name}
-                </Text>
+                </ThemedText>
 
                 {playlist.description && (
-                  <Text
+                  <ThemedText
                     style={[
                       styles.playlistDescription,
                       {
@@ -268,7 +269,7 @@ export default function PlaylistScreen() {
                     numberOfLines={2}
                   >
                     {playlist.description.replace(/<[^>]*>/g, "")}
-                  </Text>
+                  </ThemedText>
                 )}
 
                 <View style={styles.statsRow}>
@@ -278,7 +279,7 @@ export default function PlaylistScreen() {
                       size={16}
                       color={colors.text}
                     />
-                    <Text
+                    <ThemedText
                       style={[
                         styles.statText,
                         {
@@ -287,7 +288,7 @@ export default function PlaylistScreen() {
                       ]}
                     >
                       {tracks.length} tracks
-                    </Text>
+                    </ThemedText>
                   </View>
                   <View style={styles.statDivider} />
                   <View style={styles.statItem}>
@@ -296,7 +297,7 @@ export default function PlaylistScreen() {
                       size={16}
                       color={colors.text}
                     />
-                    <Text
+                    <ThemedText
                       style={[
                         styles.statText,
                         {
@@ -307,7 +308,7 @@ export default function PlaylistScreen() {
                       {totalHours > 0
                         ? `${totalHours}h ${remainingMinutes}m`
                         : `${remainingMinutes} min`}
-                    </Text>
+                    </ThemedText>
                   </View>
                 </View>
 
@@ -324,11 +325,11 @@ export default function PlaylistScreen() {
                     size={18}
                     color={colors.text}
                   />
-                  <Text
+                  <ThemedText
                     style={[styles.shareButtonText, { color: colors.text }]}
                   >
                     Share to Feed
-                  </Text>
+                  </ThemedText>
                 </Pressable>
               </View>
             </View>
@@ -341,9 +342,9 @@ export default function PlaylistScreen() {
               ]}
             >
               <View style={styles.trackListHeader}>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
                   Tracks
-                </Text>
+                </ThemedText>
               </View>
 
               <View style={styles.trackList}>
@@ -395,18 +396,18 @@ export default function PlaylistScreen() {
                 contentFit="cover"
               />
               <View style={styles.compactDetails}>
-                <Text
+                <ThemedText
                   style={[styles.compactName, { color: colors.text }]}
                   numberOfLines={1}
                 >
                   {playlist.name}
-                </Text>
-                <Text style={[styles.compactStats, { color: colors.icon }]}>
+                </ThemedText>
+                <ThemedText style={[styles.compactStats, { color: colors.icon }]}>
                   {tracks.length} tracks •{" "}
                   {totalHours > 0
                     ? `${totalHours}h ${remainingMinutes}m`
                     : `${remainingMinutes} min`}
-                </Text>
+                </ThemedText>
               </View>
             </View>
 
@@ -605,19 +606,19 @@ export default function PlaylistScreen() {
           >
             <View style={styles.bottomTrackInfo}>
               <View style={styles.bottomTrackDetails}>
-                <Text
+                <ThemedText
                   style={[styles.bottomTrackName, { color: colors.text }]}
                   numberOfLines={1}
                 >
                   {selectedTrack?.name || "Unknown Track"}
-                </Text>
-                <Text
+                </ThemedText>
+                <ThemedText
                   style={[styles.bottomTrackArtist, { color: colors.icon }]}
                   numberOfLines={1}
                 >
                   {selectedTrack?.artists?.map((a: any) => a.name).join(", ") ||
                     "Unknown Artist"}
-                </Text>
+                </ThemedText>
               </View>
               <Pressable
                 style={[styles.playButton, { backgroundColor: colors.primary }]}

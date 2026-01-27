@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import feedApi, { FeedPost } from "@/services/feedApi";
@@ -33,7 +34,7 @@ export default function SharedTrackPost({ item }: SharedTrackPostProps) {
       <PostHeader user={item.user} timeAgo={timeAgo} />
 
       {caption && (
-        <Text style={[styles.caption, { color: colors.text }]}>{caption}</Text>
+        <ThemedText style={[styles.caption, { color: colors.text }]}>{caption}</ThemedText>
       )}
 
       <View style={styles.trackContainer}>
@@ -45,15 +46,15 @@ export default function SharedTrackPost({ item }: SharedTrackPostProps) {
           colors={["transparent", "rgba(0,0,0,0.5)", "rgba(0,0,0,0.7)"]}
           style={styles.gradient} />
         <View style={styles.trackInfo}>
-          <Text style={[styles.actionLabel, { color: colors.text }]}>
+          <ThemedText style={[styles.actionLabel, { color: colors.text }]}>
             SHARED
-          </Text>
-          <Text style={styles.trackName} numberOfLines={2}>
+          </ThemedText>
+          <ThemedText style={styles.trackName} numberOfLines={2}>
             {track.name}
-          </Text>
-          <Text style={styles.artistName} numberOfLines={1}>
+          </ThemedText>
+          <ThemedText style={styles.artistName} numberOfLines={1}>
             {track.artistNames.join(", ")}
-          </Text>
+          </ThemedText>
         </View>
       </View>
     </Pressable>

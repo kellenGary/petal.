@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -32,17 +33,17 @@ export default function ErrorScreen({
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Ionicons name={icon} size={64} color={colors.icon} />
-      <Text style={[styles.message, { color: colors.text }]}>{message}</Text>
+      <ThemedText style={[styles.message, { color: colors.text }]}>{message}</ThemedText>
       {subMessage && (
-        <Text style={[styles.subMessage, { color: colors.text }]}>
+        <ThemedText style={[styles.subMessage, { color: colors.text }]}>
           {subMessage}
-        </Text>
+        </ThemedText>
       )}
       <Pressable
         style={[styles.backButton, { backgroundColor: colors.primary }]}
         onPress={onBack || (() => router.back())}
       >
-        <Text style={styles.backButtonText}>Go Back</Text>
+        <ThemedText style={styles.backButtonText}>Go Back</ThemedText>
       </Pressable>
     </View>
   );

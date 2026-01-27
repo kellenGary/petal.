@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -32,18 +33,18 @@ export default function StatsRow({
     <View style={styles.container}>
       <View style={styles.statItem}>
         <Ionicons name="musical-notes" size={16} color={effectiveIconColor} />
-        <Text style={[styles.statText, { color: textColor }]}>
+        <ThemedText style={[styles.statText, { color: textColor }]}>
           {trackCount} tracks
-        </Text>
+        </ThemedText>
       </View>
       <View style={styles.divider} />
       <View style={styles.statItem}>
         <Ionicons name="time-outline" size={16} color={effectiveIconColor} />
-        <Text style={[styles.statText, { color: textColor }]}>
+        <ThemedText style={[styles.statText, { color: textColor }]}>
           {totalHours > 0
             ? `${totalHours}h ${remainingMinutes}m`
             : `${remainingMinutes} min`}
-        </Text>
+        </ThemedText>
       </View>
     </View>
   );

@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import feedApi, { FeedPost } from "@/services/feedApi";
@@ -38,16 +39,16 @@ export default function SharedAlbumPost({ item }: SharedAlbumPostProps) {
       <PostHeader user={item.user} timeAgo={timeAgo} />
 
       {caption && (
-        <Text style={[styles.caption, { color: colors.text }]}>{caption}</Text>
+        <ThemedText style={[styles.caption, { color: colors.text }]}>{caption}</ThemedText>
       )}
 
       <View style={styles.albumContainer}>
         <Image source={{ uri: album.imageUrl || "" }} style={styles.albumArt} />
         <View style={styles.albumOverlay}>
-          <Text style={styles.albumLabel}>ALBUM</Text>
-          <Text style={styles.albumName} numberOfLines={2}>
+          <ThemedText style={styles.albumLabel}>ALBUM</ThemedText>
+          <ThemedText style={styles.albumName} numberOfLines={2}>
             {album.name}
-          </Text>
+          </ThemedText>
         </View>
       </View>
     </Pressable>

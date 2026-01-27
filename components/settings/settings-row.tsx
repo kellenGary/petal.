@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -72,16 +73,16 @@ export function SettingsRow({
           </View>
         )}
         <View style={styles.textContainer}>
-          <Text style={[styles.label, { color: textColor }]} numberOfLines={1}>
+          <ThemedText style={[styles.label, { color: textColor }]} numberOfLines={1}>
             {label}
-          </Text>
+          </ThemedText>
           {sublabel && (
-            <Text
+            <ThemedText
               style={[styles.sublabel, { color: colors.icon }]}
               numberOfLines={1}
             >
               {sublabel}
-            </Text>
+            </ThemedText>
           )}
         </View>
       </View>

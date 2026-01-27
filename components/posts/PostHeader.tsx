@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -30,10 +31,10 @@ export default function PostHeader({ user, timeAgo }: PostHeaderProps) {
         style={styles.avatar}
       />
       <View style={styles.info}>
-        <Text style={[styles.name, { color: colors.text }]}>
+        <ThemedText style={[styles.name, { color: colors.text }]}>
           {user.displayName || user.handle}
-        </Text>
-        <Text style={[styles.time, { color: colors.text }]}>{timeAgo}</Text>
+        </ThemedText>
+        <ThemedText style={[styles.time, { color: colors.text }]}>{timeAgo}</ThemedText>
       </View>
     </Pressable>
   );

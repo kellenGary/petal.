@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import feedApi, { FeedPost } from "@/services/feedApi";
@@ -38,7 +39,7 @@ export default function SharedArtistPost({ item }: SharedArtistPostProps) {
       <PostHeader user={item.user} timeAgo={timeAgo} />
 
       {caption && (
-        <Text style={[styles.caption, { color: colors.text }]}>{caption}</Text>
+        <ThemedText style={[styles.caption, { color: colors.text }]}>{caption}</ThemedText>
       )}
 
       <View
@@ -56,15 +57,15 @@ export default function SharedArtistPost({ item }: SharedArtistPostProps) {
           style={styles.artistImage}
         />
         <View style={styles.artistInfo}>
-          <Text style={[styles.artistLabel, { color: colors.text }]}>
+          <ThemedText style={[styles.artistLabel, { color: colors.text }]}>
             ARTIST
-          </Text>
-          <Text
+          </ThemedText>
+          <ThemedText
             style={[styles.artistName, { color: colors.text }]}
             numberOfLines={1}
           >
             {artist.name}
-          </Text>
+          </ThemedText>
         </View>
       </View>
     </Pressable>

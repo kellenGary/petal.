@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { ScrollView, Text, View, Image, StyleSheet } from "react-native";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -9,9 +10,6 @@ export default function LiveListeners() {
 
   return (
     <View style={styles.activeContainer}>
-      <Text style={[styles.activeHeaderText, { color: colors.text }]}>
-        Listening Now
-      </Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -20,12 +18,12 @@ export default function LiveListeners() {
       >
         <View style={styles.listenerCard}>
           <View style={styles.songBubble}>
-            <Text
+            <ThemedText
               style={[styles.songName, { color: Colors.light.text }]}
               numberOfLines={2}
             >
               songName
-            </Text>
+            </ThemedText>
           </View>
           <View style={styles.profileImageContainer}>
             <Image
@@ -33,7 +31,7 @@ export default function LiveListeners() {
               style={styles.profileImage}
             />
           </View>
-          <Text style={[styles.username, { color: colors.text }]}>Name</Text>
+          <ThemedText style={[styles.username, { color: colors.text }]}>Name</ThemedText>
         </View>
       </ScrollView>
     </View>
@@ -43,12 +41,6 @@ export default function LiveListeners() {
 const styles = StyleSheet.create({
       activeContainer: {
     width: "100%",
-  },
-  activeHeaderText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "black",
-    marginBottom: 12,
   },
   activeScrollView: {
     width: "100%",

@@ -1,18 +1,19 @@
-// Home / Feed screen for the app's main tab.
-// - Displays a map hero, a "listening now" horizontal strip, and the user's feed.
-// - Fetches feed items from `feedApi` and renders each post card.
-// This file is written as a functional React component using hooks and React Native UI primitives.
 import Feed from "@/components/Feed";
+import LiveListeners from '@/components/live-listeners';
+import SotdSuggestionPopup from "@/components/sotd-suggestion-popup";
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "@/contexts/LocationContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import useUserContent from "@/hooks/useUserContent";
+import { MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
 import MapView from "react-native-maps";
-import { MaterialIcons } from "@expo/vector-icons";
 
 // Main exported screen component for the Home / Feed tab.
 // Responsibilities:
@@ -25,13 +26,31 @@ export default function HomeScreen() {
   const colors = Colors[isDark ? "dark" : "light"];
   const { user } = useAuth();
   const { location } = useLocation();
+  const { sotd, fetchSotd, loading } = useUserContent();
+  const [showSotdPopup, setShowSotdPopup] = useState(false);
+
+  // Check for SOTD on mount
+  useEffect(() => {
+    fetchSotd();
+  }, []);
+
+  // Show popup if SOTD is not set (and not loading)
+  useEffect(() => {
+    if (!loading.sotd && sotd === null) {
+      // Delay slightly to be less jarring
+      const timer = setTimeout(() => {
+        setShowSotdPopup(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [loading.sotd, sotd]);
 
   // Feed is rendered by the `Feed` component; item rendering lives in `FeedItem`.
 
   const renderHeader = () => (
     <>
       {/* Hero */}
-      <View style={styles.headerGradient}>
+      <View style={styles.headerWrapper}>
         <Pressable
           style={styles.notificationButton}
           onPress={() => router.push("/notifications")}
@@ -44,20 +63,24 @@ export default function HomeScreen() {
         </Pressable>
         {/* Hero Header */}
         <View style={styles.headerContainer}>
-          <Image
-            source={
-              !isDark
-                ? require("../../assets/images/black-icon.png")
-                : require("../../assets/images/icon.png")
-            }
-            style={styles.headerImage}
-          />
-          <Text style={[styles.headerText, { color: colors.text }]}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <ThemedText type='subtitle'>
+              petal.
+            </ThemedText>
+            <Image
+              source={require("../../assets/images/Frame 2.svg")}
+              style={styles.headerImage}
+            />
+          </View>
+          <ThemedText>
             Welcome {user?.displayName}
-          </Text>
+          </ThemedText>
         </View>
 
         <View style={styles.headerContentContainer}>
+          {/* Live Listeners Section */}
+          <LiveListeners />
+
           {/* Map Section */}
           <Pressable
             style={styles.map}
@@ -92,21 +115,20 @@ export default function HomeScreen() {
                   },
                 ]}
               >
-                <Text style={{ color: colors.text }}>Loading location...</Text>
+                <ThemedText style={{ color: colors.text }}>Loading location...</ThemedText>
               </View>
             )}
           </Pressable>
 
-          {/* Live Listeners Section */}
-          {/* <LiveListeners /> */}
+
         </View>
       </View>
 
       {/* Feed Header */}
       <View style={styles.feedHeaderContainer}>
-        <Text style={[styles.activeHeaderText, { color: colors.text }]}>
+        <ThemedText style={[styles.activeHeaderText, { color: colors.text }]}>
           Your Feed
-        </Text>
+        </ThemedText>
       </View>
     </>
   );
@@ -123,6 +145,11 @@ export default function HomeScreen() {
       >
         <Feed ListHeaderComponent={renderHeader()} />
       </LinearGradient>
+
+      <SotdSuggestionPopup
+        visible={showSotdPopup}
+        onDismiss={() => setShowSotdPopup(false)}
+      />
     </View>
   );
 }
@@ -137,9 +164,9 @@ const styles = StyleSheet.create({
   flatListContent: {
     paddingBottom: 100,
   },
-  headerGradient: {
+  headerWrapper: {
     width: "100%",
-    gap: 32,
+    gap: 12,
   },
   notificationButton: {
     position: "absolute",
@@ -150,18 +177,11 @@ const styles = StyleSheet.create({
   headerContainer: {
     width: "100%",
     flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "space-between",
     paddingTop: 32,
   },
   headerImage: {
-    width: 96,
-    height: 96,
-  },
-  headerText: {
-    fontSize: 24,
-    fontWeight: "600",
-    color: "black",
+    width: 24,
+    height: 24,
   },
   headerContentContainer: {
     flexDirection: "column",

@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import LikeButton from "@/components/like-button";
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
@@ -183,9 +184,9 @@ export default function SongModal() {
         ]}
       >
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loadingText, { color: colors.text }]}>
+        <ThemedText style={[styles.loadingText, { color: colors.text }]}>
           Loading song...
-        </Text>
+        </ThemedText>
       </View>
     );
   }
@@ -196,9 +197,9 @@ export default function SongModal() {
         style={[styles.errorContainer, { backgroundColor: colors.background }]}
       >
         <MaterialIcons name="music-off" size={48} color={colors.icon} />
-        <Text style={[styles.errorText, { color: colors.text }]}>
+        <ThemedText style={[styles.errorText, { color: colors.text }]}>
           Song not found
-        </Text>
+        </ThemedText>
       </View>
     );
   }
@@ -228,32 +229,32 @@ export default function SongModal() {
           contentFit="cover"
         />
         <View style={styles.songInfo}>
-          <Text
+          <ThemedText
             style={[styles.songName, { color: colors.text }]}
             numberOfLines={2}
           >
             {song?.name}
-          </Text>
-          <Text
+          </ThemedText>
+          <ThemedText
             style={[styles.artistName, { color: colors.text }]}
             numberOfLines={1}
           >
             {song?.artists?.map((artist: any) => artist.name).join(", ")}
-          </Text>
+          </ThemedText>
           {song?.album?.name && (
-            <Text
+            <ThemedText
               style={[styles.albumName, { color: colors.icon }]}
               numberOfLines={1}
             >
               {song.album.name}
-            </Text>
+            </ThemedText>
           )}
           <Pressable
             style={[styles.playButton, { backgroundColor: colors.primary }]}
             onPress={handlePlaySong}
           >
             <MaterialIcons name="play-arrow" size={20} color="#fff" />
-            <Text style={styles.playButtonText}>Play</Text>
+            <ThemedText style={styles.playButtonText}>Play</ThemedText>
           </Pressable>
         </View>
       </View>
@@ -279,9 +280,9 @@ export default function SongModal() {
                 size={18}
                 color={colors.text}
               />
-              <Text style={[styles.actionText, { color: colors.text }]}>
+              <ThemedText style={[styles.actionText, { color: colors.text }]}>
                 Playlist
-              </Text>
+              </ThemedText>
             </Pressable>
 
             <Pressable
@@ -290,9 +291,9 @@ export default function SongModal() {
               disabled={sharing}
             >
               <MaterialIcons name="share" size={18} color={colors.text} />
-              <Text style={[styles.actionText, { color: colors.text }]}>
+              <ThemedText style={[styles.actionText, { color: colors.text }]}>
                 Share
-              </Text>
+              </ThemedText>
             </Pressable>
           </View>
         </View>
@@ -300,11 +301,11 @@ export default function SongModal() {
         {/* Fans Section */}
         {(fans.length > 0 || fansLoading) && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
               {fans.some((f) => f.isFollowing)
                 ? "Friends who liked this"
                 : "People who liked this"}
-            </Text>
+            </ThemedText>
             {fansLoading ? (
               <ActivityIndicator size="small" color={colors.primary} />
             ) : (
@@ -335,12 +336,12 @@ export default function SongModal() {
                           />
                         </View>
                       )}
-                      <Text
+                      <ThemedText
                         style={[styles.fanName, { color: colors.text }]}
                         numberOfLines={1}
                       >
                         {fan.displayName || fan.handle || "User"}
-                      </Text>
+                      </ThemedText>
                       {fan.isFollowing && (
                         <View style={styles.followingBadge}>
                           <MaterialIcons name="check" size={10} color="#fff" />
@@ -356,40 +357,40 @@ export default function SongModal() {
 
         {/* Track Stats */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
             Track Info
-          </Text>
+          </ThemedText>
           <View style={[styles.statsCard, { backgroundColor: colors.card }]}>
             <View style={styles.statRow}>
               <MaterialIcons name="album" size={18} color={colors.icon} />
-              <Text style={[styles.statLabel, { color: colors.text }]}>
+              <ThemedText style={[styles.statLabel, { color: colors.text }]}>
                 Album
-              </Text>
-              <Text
+              </ThemedText>
+              <ThemedText
                 style={[styles.statValue, { color: colors.text }]}
                 numberOfLines={1}
               >
                 {song?.album?.name || "Unknown"}
-              </Text>
+              </ThemedText>
             </View>
             <View style={styles.statRow}>
               <MaterialIcons name="schedule" size={18} color={colors.icon} />
-              <Text style={[styles.statLabel, { color: colors.text }]}>
+              <ThemedText style={[styles.statLabel, { color: colors.text }]}>
                 Duration
-              </Text>
-              <Text style={[styles.statValue, { color: colors.text }]}>
+              </ThemedText>
+              <ThemedText style={[styles.statValue, { color: colors.text }]}>
                 {formatDuration(song?.duration_ms)}
-              </Text>
+              </ThemedText>
             </View>
             {song?.album?.release_date && (
               <View style={styles.statRow}>
                 <MaterialIcons name="event" size={18} color={colors.icon} />
-                <Text style={[styles.statLabel, { color: colors.text }]}>
+                <ThemedText style={[styles.statLabel, { color: colors.text }]}>
                   Released
-                </Text>
-                <Text style={[styles.statValue, { color: colors.text }]}>
+                </ThemedText>
+                <ThemedText style={[styles.statValue, { color: colors.text }]}>
                   {formatReleaseDate(song.album.release_date)}
-                </Text>
+                </ThemedText>
               </View>
             )}
             {song?.popularity !== undefined && (
@@ -399,9 +400,9 @@ export default function SongModal() {
                   size={18}
                   color={colors.icon}
                 />
-                <Text style={[styles.statLabel, { color: colors.text }]}>
+                <ThemedText style={[styles.statLabel, { color: colors.text }]}>
                   Popularity
-                </Text>
+                </ThemedText>
                 <View style={styles.popularityBar}>
                   <View
                     style={[
@@ -413,9 +414,9 @@ export default function SongModal() {
                     ]}
                   />
                 </View>
-                <Text style={[styles.statValue, { color: colors.text }]}>
+                <ThemedText style={[styles.statValue, { color: colors.text }]}>
                   {song.popularity}
-                </Text>
+                </ThemedText>
               </View>
             )}
           </View>

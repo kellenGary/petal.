@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import FilterBubble from "@/components/filter-bubble";
 import SelectableItem from "@/components/selectable-item";
 import { Colors } from "@/constants/theme";
@@ -98,9 +99,9 @@ export default function SOTDSelectScreen() {
       return (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.text }]}>
+          <ThemedText style={[styles.loadingText, { color: colors.text }]}>
             Loading your {activeFilter.toLowerCase()}s...
-          </Text>
+          </ThemedText>
         </View>
       );
     }
@@ -115,9 +116,9 @@ export default function SOTDSelectScreen() {
 
     if (filteredTracks.length === 0) {
       return (
-        <Text style={[styles.emptyText, { color: colors.text }]}>
+        <ThemedText style={[styles.emptyText, { color: colors.text }]}>
           No {activeFilter.toLowerCase()}s found
-        </Text>
+        </ThemedText>
       );
     }
 
@@ -160,9 +161,9 @@ export default function SOTDSelectScreen() {
         style={[styles.headerContainer, { backgroundColor: colors.background }]}
       >
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>
+          <ThemedText style={[styles.title, { color: colors.text }]}>
             Song of the Day
-          </Text>
+          </ThemedText>
           {selectedTrack && (
             <Pressable
               style={[

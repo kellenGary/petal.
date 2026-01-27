@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import feedApi, { FeedPost } from "@/services/feedApi";
@@ -73,19 +74,19 @@ export default function DefaultPost({ item }: DefaultPostProps) {
           <Image source={{ uri: imageUrl }} style={styles.contentImage} />
         )}
         <View style={styles.contentText}>
-          <Text style={[styles.action, { color: colors.text }]}>
+          <ThemedText style={[styles.action, { color: colors.text }]}>
             {getActionText(item.type)}
-          </Text>
-          <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
+          </ThemedText>
+          <ThemedText style={[styles.name, { color: colors.text }]} numberOfLines={1}>
             {getContentName()}
-          </Text>
+          </ThemedText>
           {getContentSubtitle() && (
-            <Text
+            <ThemedText
               style={[styles.subtitle, { color: colors.text }]}
               numberOfLines={1}
             >
               {getContentSubtitle()}
-            </Text>
+            </ThemedText>
           )}
         </View>
       </View>

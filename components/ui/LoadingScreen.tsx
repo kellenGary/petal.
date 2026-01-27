@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
@@ -21,9 +22,9 @@ export default function LoadingScreen({ message }: LoadingScreenProps) {
       <View style={styles.content}>
         <ActivityIndicator size="large" color={colors.primary} />
         {message && (
-          <Text style={[styles.message, { color: colors.text }]}>
+          <ThemedText style={[styles.message, { color: colors.text }]}>
             {message}
-          </Text>
+          </ThemedText>
         )}
       </View>
     </View>

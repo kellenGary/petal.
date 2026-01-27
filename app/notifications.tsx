@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Text, View, StyleSheet } from "react-native";
@@ -8,7 +9,7 @@ export default function NotificationsScreen() {
   const colors = Colors[isDark ? "dark" : "light"];
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Text style={[styles.text, { color: colors.text }]}>Notifications</Text>
+      <ThemedText style={[styles.text, { color: colors.text }]}>Notifications</ThemedText>
     </View>
   );
 }

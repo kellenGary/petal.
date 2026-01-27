@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -64,10 +65,10 @@ export default function FeedItem({ item }: { item: FeedPost }) {
     if (!metadata || !metadata.tracks) return null;
     return (
       <View style={styles.sessionContainer}>
-        <Text style={[styles.sessionInfo, { color: colors.text }]}>
+        <ThemedText style={[styles.sessionInfo, { color: colors.text }]}>
           {metadata.trackCount} tracks •{" "}
           {Math.round(metadata.totalDurationMs / 60000)} min
-        </Text>
+        </ThemedText>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -85,19 +86,19 @@ export default function FeedItem({ item }: { item: FeedPost }) {
                   style={styles.sessionTrackImage}
                 />
               )}
-              <Text
+              <ThemedText
                 style={[styles.sessionTrackName, { color: colors.text }]}
                 numberOfLines={1}
               >
                 {track.name}
-              </Text>
+              </ThemedText>
             </View>
           ))}
           {metadata.tracks.length > 6 && (
             <View style={styles.sessionMoreItem}>
-              <Text style={[styles.sessionMoreText, { color: colors.text }]}>
+              <ThemedText style={[styles.sessionMoreText, { color: colors.text }]}>
                 +{metadata.tracks.length - 6}
-              </Text>
+              </ThemedText>
             </View>
           )}
         </ScrollView>
@@ -134,19 +135,19 @@ export default function FeedItem({ item }: { item: FeedPost }) {
           style={styles.feedUserImage}
         />
         <View style={styles.feedUserInfo}>
-          <Text style={[styles.feedUserName, { color: colors.text }]}>
+          <ThemedText style={[styles.feedUserName, { color: colors.text }]}>
             {item.user.displayName || item.user.handle}
-          </Text>
-          <Text style={[styles.feedTimeAgo, { color: colors.text }]}>
+          </ThemedText>
+          <ThemedText style={[styles.feedTimeAgo, { color: colors.text }]}>
             {timeAgo}
-          </Text>
+          </ThemedText>
         </View>
       </Pressable>
 
       {caption && (
-        <Text style={[styles.feedCaption, { color: colors.text }]}>
+        <ThemedText style={[styles.feedCaption, { color: colors.text }]}>
           {caption}
-        </Text>
+        </ThemedText>
       )}
 
       {isSession ? (
@@ -157,22 +158,22 @@ export default function FeedItem({ item }: { item: FeedPost }) {
             <Image source={{ uri: imageUrl }} style={styles.feedContentImage} />
           )}
           <View style={styles.feedContentText}>
-            <Text style={[styles.feedAction, { color: colors.text }]}>
+            <ThemedText style={[styles.feedAction, { color: colors.text }]}>
               {getActionText(item.type)}
-            </Text>
-            <Text
+            </ThemedText>
+            <ThemedText
               style={[styles.feedTrackName, { color: colors.text }]}
               numberOfLines={1}
             >
               {getContentName(item)}
-            </Text>
+            </ThemedText>
             {getContentSubtitle(item) && (
-              <Text
+              <ThemedText
                 style={[styles.feedArtistName, { color: colors.text }]}
                 numberOfLines={1}
               >
                 {getContentSubtitle(item)}
-              </Text>
+              </ThemedText>
             )}
           </View>
         </View>

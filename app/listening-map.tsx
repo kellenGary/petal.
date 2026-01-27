@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import {
   ClusteredMapMarker,
   ClusteredMarker,
@@ -149,9 +150,9 @@ export default function ListeningMapScreen() {
         ]}
       >
         <ActivityIndicator size="large" color={colors.tint} />
-        <Text style={[styles.loadingText, { color: colors.text }]}>
+        <ThemedText style={[styles.loadingText, { color: colors.text }]}>
           Loading your listening map...
-        </Text>
+        </ThemedText>
       </View>
     );
   }
@@ -168,12 +169,12 @@ export default function ListeningMapScreen() {
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={24} color={colors.icon} />
         </Pressable>
-        <Text style={[styles.errorText, { color: colors.text }]}>
+        <ThemedText style={[styles.errorText, { color: colors.text }]}>
           {locationError}
-        </Text>
-        <Text style={[styles.errorSubtext, { color: colors.text }]}>
+        </ThemedText>
+        <ThemedText style={[styles.errorSubtext, { color: colors.text }]}>
           Enable location permissions to see your listening map
-        </Text>
+        </ThemedText>
       </View>
     );
   }
@@ -191,7 +192,7 @@ export default function ListeningMapScreen() {
         >
           <MaterialIcons name="arrow-back" size={24} color="#fff" />
         </Pressable>
-        <Text style={styles.headerTitle}>Listening Map</Text>
+        <ThemedText style={styles.headerTitle}>Listening Map</ThemedText>
         <View style={styles.headerSpacer} />
       </LinearGradient>
 
@@ -244,11 +245,11 @@ export default function ListeningMapScreen() {
             <View style={styles.modalHandle} />
             {selectedCluster && (
               <>
-                <Text style={[styles.clusterInfo, { color: colors.text }]}>
+                <ThemedText style={[styles.clusterInfo, { color: colors.text }]}>
                   {selectedCluster.count === 1
                     ? "1 song at this location"
                     : `${selectedCluster.count} songs at this location`}
-                </Text>
+                </ThemedText>
                 <FlatList
                   data={selectedCluster.items}
                   keyExtractor={(item) => `${item.id}-${item.played_at}`}
@@ -284,13 +285,13 @@ export default function ListeningMapScreen() {
                         </View>
                       )}
                       <View style={styles.trackListDetails}>
-                        <Text
+                        <ThemedText
                           style={[styles.trackListName, { color: colors.text }]}
                           numberOfLines={1}
                         >
                           {item.track.name}
-                        </Text>
-                        <Text
+                        </ThemedText>
+                        <ThemedText
                           style={[
                             styles.trackListArtist,
                             { color: colors.text },
@@ -298,12 +299,12 @@ export default function ListeningMapScreen() {
                           numberOfLines={1}
                         >
                           {item.track.artists.map((a) => a.name).join(", ")}
-                        </Text>
-                        <Text
+                        </ThemedText>
+                        <ThemedText
                           style={[styles.trackListDate, { color: colors.text }]}
                         >
                           {formatDate(item.played_at)}
-                        </Text>
+                        </ThemedText>
                       </View>
                       <MaterialIcons
                         name="chevron-right"

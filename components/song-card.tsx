@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -24,18 +25,18 @@ export default function SongCard({ song, onPress }: SongCardProps) {
         style={[styles.itemImage, { backgroundColor: colors.tabIconDefault }]}
       />
       <View style={styles.itemInfo}>
-        <Text
+        <ThemedText
           style={[styles.itemTitle, { color: colors.text }]}
           numberOfLines={1}
         >
           {song.title || "Unknown Song"}
-        </Text>
-        <Text
+        </ThemedText>
+        <ThemedText
           style={[styles.itemSubtitle, { color: colors.tabIconDefault }]}
           numberOfLines={1}
         >
           {song.artist || "Unknown Artist"}
-        </Text>
+        </ThemedText>
       </View>
     </Pressable>
   );

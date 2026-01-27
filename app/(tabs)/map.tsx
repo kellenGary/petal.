@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import {
   ClusteredMapMarker,
   ClusteredMarker,
@@ -142,9 +143,9 @@ export default function MapScreen() {
         ]}
       >
         <ActivityIndicator size="large" color={colors.tint} />
-        <Text style={[styles.loadingText, { color: colors.text }]}>
+        <ThemedText style={[styles.loadingText, { color: colors.text }]}>
           Loading map...
-        </Text>
+        </ThemedText>
       </View>
     );
   }
@@ -158,12 +159,12 @@ export default function MapScreen() {
           { backgroundColor: colors.background, paddingTop: insets.top },
         ]}
       >
-        <Text style={[styles.errorText, { color: colors.text }]}>
+        <ThemedText style={[styles.errorText, { color: colors.text }]}>
           {locationError}
-        </Text>
-        <Text style={[styles.errorSubtext, { color: colors.text }]}>
+        </ThemedText>
+        <ThemedText style={[styles.errorSubtext, { color: colors.text }]}>
           Enable location permissions to use the map
-        </Text>
+        </ThemedText>
       </View>
     );
   }
@@ -218,11 +219,11 @@ export default function MapScreen() {
             <View style={styles.modalHandle} />
             {selectedCluster && (
               <>
-                <Text style={[styles.clusterInfo, { color: colors.text }]}>
+                <ThemedText style={[styles.clusterInfo, { color: colors.text }]}>
                   {selectedCluster.count === 1
                     ? "1 song at this location"
                     : `${selectedCluster.count} songs at this location`}
-                </Text>
+                </ThemedText>
                 <FlatList
                   data={selectedCluster.items}
                   keyExtractor={(item) => `${item.id}-${item.played_at}`}
@@ -258,13 +259,13 @@ export default function MapScreen() {
                         </View>
                       )}
                       <View style={styles.trackListDetails}>
-                        <Text
+                        <ThemedText
                           style={[styles.trackListName, { color: colors.text }]}
                           numberOfLines={1}
                         >
                           {item.track.name}
-                        </Text>
-                        <Text
+                        </ThemedText>
+                        <ThemedText
                           style={[
                             styles.trackListArtist,
                             { color: colors.text },
@@ -272,12 +273,12 @@ export default function MapScreen() {
                           numberOfLines={1}
                         >
                           {item.track.artists.map((a) => a.name).join(", ")}
-                        </Text>
-                        <Text
+                        </ThemedText>
+                        <ThemedText
                           style={[styles.trackListDate, { color: colors.text }]}
                         >
                           {formatDate(item.played_at)}
-                        </Text>
+                        </ThemedText>
                       </View>
                       <MaterialIcons
                         name="chevron-right"

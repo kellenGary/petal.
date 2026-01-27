@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import feedApi, { FeedPost } from "@/services/feedApi";
@@ -38,15 +39,15 @@ export default function ListeningSessionPost({
         ]}
       >
         <View style={[styles.sessionIcon, { backgroundColor: colors.icon }]}>
-          <Text style={styles.sessionIconText}>🎧</Text>
+          <ThemedText style={styles.sessionIconText}>🎧</ThemedText>
         </View>
         <View style={styles.sessionMeta}>
-          <Text style={[styles.sessionTitle, { color: colors.text }]}>
+          <ThemedText style={[styles.sessionTitle, { color: colors.text }]}>
             Listening Session
-          </Text>
-          <Text style={[styles.sessionStats, { color: colors.text }]}>
+          </ThemedText>
+          <ThemedText style={[styles.sessionStats, { color: colors.text }]}>
             {metadata.trackCount} tracks • {durationMins} min
-          </Text>
+          </ThemedText>
         </View>
       </View>
 
@@ -64,18 +65,18 @@ export default function ListeningSessionPost({
                 style={styles.trackImage}
               />
             )}
-            <Text
+            <ThemedText
               style={[styles.trackName, { color: colors.text }]}
               numberOfLines={1}
             >
               {track.name}
-            </Text>
-            <Text
+            </ThemedText>
+            <ThemedText
               style={[styles.trackArtist, { color: colors.text }]}
               numberOfLines={1}
             >
               {track.artistNames}
-            </Text>
+            </ThemedText>
           </Pressable>
         ))}
       </ScrollView>

@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import UserCard from "@/components/user-card";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -93,9 +94,9 @@ export default function ExploreScreen() {
     >
       {/* Header */}
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
+        <ThemedText style={[styles.headerTitle, { color: colors.text }]}>
           Find People
-        </Text>
+        </ThemedText>
       </View>
 
       {/* Search Bar */}
@@ -177,7 +178,7 @@ export default function ExploreScreen() {
       )}
     </View>
   );
-}3
+} 3
 
 const styles = StyleSheet.create({
   container: {

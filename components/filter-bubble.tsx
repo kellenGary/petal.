@@ -1,3 +1,4 @@
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
 import { Pressable, StyleSheet, Text, useColorScheme } from "react-native";
 
@@ -26,14 +27,14 @@ export default function FilterBubble({
       accessibilityRole="button"
       accessibilityState={{ selected: isActive }}
     >
-      <Text
+      <ThemedText
         style={[
           styles.text,
           isActive ? styles.textActive : { color: isDark ? Colors.dark.text : Colors.light.text },
         ]}
       >
         {filterName}
-      </Text>
+      </ThemedText>
     </Pressable>
   );
 }
