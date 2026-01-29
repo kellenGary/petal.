@@ -5,6 +5,7 @@ using System.Text;
 using PetalAPI.Data;
 using PetalAPI.Services;
 using System.IO;
+using System.Net.Sockets;
 
 // Load .env file
 DotNetEnv.Env.Load();
@@ -13,6 +14,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add environment variables to configuration
 builder.Configuration.AddEnvironmentVariables();
+
+builder.Services.AddMemoryCache();
 
 // Add HTTP logging (minimal)
 builder.Services.AddHttpLogging(logging =>
@@ -36,7 +39,32 @@ builder.Services.AddSwaggerGen(c =>
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     c.IncludeXmlComments(xmlPath);
 });
-builder.Services.AddHttpClient(); // Add HttpClient for Spotify API calls
+builder.Services.AddHttpClient("Spotify", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+}).ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+{
+    ConnectCallback = async (context, cancellationToken) =>
+    {
+        var entry = await System.Net.Dns.GetHostEntryAsync(context.DnsEndPoint.Host, cancellationToken);
+        var ip = entry.AddressList.FirstOrDefault(x => x.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork) 
+             ?? throw new Exception($"No IPv4 address found for {context.DnsEndPoint.Host}");
+        
+        var socket = new System.Net.Sockets.Socket(System.Net.Sockets.AddressFamily.InterNetwork, System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
+        try
+        {
+            await socket.ConnectAsync(ip, context.DnsEndPoint.Port, cancellationToken);
+            return new NetworkStream(socket, ownsSocket: true);
+        }
+        catch
+        {
+            socket.Dispose();
+            throw;
+        }
+    }
+});
+// Register default as well for other usages not using named client, but best to migrate
+builder.Services.AddHttpClient();
 
 // Add SQLite Database
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -46,11 +74,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Add JWT Service
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<ISpotifyTokenService, SpotifyTokenService>();
+builder.Services.AddScoped<ISpotifyAuthService, SpotifyAuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IListeningHistoryService, ListeningHistoryService>();
 builder.Services.AddScoped<IListeningSessionService, ListeningSessionService>();
 builder.Services.AddScoped<IPlaylistSyncService, PlaylistSyncService>();
 builder.Services.AddScoped<ISavedTracksSyncService, SavedTracksSyncService>();
 builder.Services.AddScoped<IPostService, PostService>();
+builder.Services.AddScoped<ISpotifyDataService, SpotifyDataService>();
 
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -104,6 +135,29 @@ using (var scope = app.Services.CreateScope())
     {
         Console.WriteLine($"Failed to apply SQL views: {ex.Message}");
     }
+
+    // Apply migration for caching columns (manual safe execution)
+    try 
+    {
+        var contentRoot = app.Environment.ContentRootPath;
+        var scriptPath = Path.Combine(contentRoot, "scripts", "add_caching_columns.sql");
+        if (File.Exists(scriptPath))
+        {
+            var sql = File.ReadAllText(scriptPath);
+            // Check if column exists first to avoid error (primitive check)
+            // Or just wrap in try-catch as "duplicate column" error is harmless for us here
+            try 
+            {
+               db.Database.ExecuteSqlRaw(sql);
+               Console.WriteLine("Applied caching columns migration.");
+            }
+            catch { /* Ignore if already exists */ }
+        }
+    }
+    catch (Exception ex)
+    {
+         Console.WriteLine($"Failed to apply caching columns: {ex.Message}");
+    }
 }
 
 if (app.Environment.IsDevelopment())
@@ -115,6 +169,25 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Custom Middleware: Log request duration and details
+app.Use(async (context, next) =>
+{
+    var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+    var sw = System.Diagnostics.Stopwatch.StartNew();
+    
+    // Log start (optional, but helpful for debugging hangs)
+    // logger.LogInformation("[API Request] {Method} {Path} Started", context.Request.Method, context.Request.Path);
+    
+    await next();
+    
+    sw.Stop();
+    logger.LogInformation("[API Request] {Method} {Path} responded {StatusCode} in {Elapsed}ms", 
+        context.Request.Method, 
+        context.Request.Path, 
+        context.Response.StatusCode, 
+        sw.ElapsedMilliseconds);
+});
 
 app.UseAuthentication();
 app.UseAuthorization();

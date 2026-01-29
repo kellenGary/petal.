@@ -157,6 +157,38 @@ public class FollowController : ControllerBase
     }
 
     /// <summary>
+    /// Retrieves all follow connections between the specified users.
+    /// Used for drawing the graph of connections.
+    /// </summary>
+    /// <param name="userIds">List of user IDs to check connections between.</param>
+    [HttpPost("connections")]
+    public async Task<IActionResult> GetGraphConnections([FromBody] int[] userIds)
+    {
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId == null)
+        {
+            return Unauthorized(new { error = "Invalid token" });
+        }
+
+        if (userIds == null || userIds.Length == 0)
+        {
+            return Ok(new List<object>());
+        }
+
+        // Find all follows where BOTH follower and followee are in the provided list
+        var connections = await _context.Follows
+            .Where(f => userIds.Contains(f.FollowerUserId) && userIds.Contains(f.FolloweeUserId))
+            .Select(f => new 
+            { 
+                followerId = f.FollowerUserId, 
+                followeeId = f.FolloweeUserId 
+            })
+            .ToListAsync();
+
+        return Ok(connections);
+    }
+
+    /// <summary>
     /// Retrieves a list of users who follow the specified user.
     /// </summary>
     /// <param name="userId">The ID of the user whose followers to retrieve.</param>

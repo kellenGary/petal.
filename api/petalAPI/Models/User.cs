@@ -36,4 +36,8 @@ public class User
     public DateTime CreatedAt { get; set; }
     
     public DateTime UpdatedAt { get; set; }
+
+    // Caching Top Artists (JSON blob)
+    public string? TopArtistsJson { get; set; }
+    public DateTime? TopArtistsUpdatedAt { get; set; }
 }

@@ -45,7 +45,7 @@ public class PlaybackController : ControllerBase
             // Initial attempt with valid token
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
 
-            var client = _httpClientFactory.CreateClient();
+            var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", accessToken);
 
@@ -120,11 +120,15 @@ public class PlaybackController : ControllerBase
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
 
-            var client = _httpClientFactory.CreateClient();
+            var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", accessToken);
 
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            _logger.LogInformation("Calling Spotify API: https://api.spotify.com/v1/me/player");
             var response = await client.GetAsync("https://api.spotify.com/v1/me/player");
+            sw.Stop();
+            _logger.LogInformation("Spotify API returned {StatusCode} in {Elapsed}ms", response.StatusCode, sw.ElapsedMilliseconds);
 
             if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
@@ -134,7 +138,11 @@ public class PlaybackController : ControllerBase
                     accessToken = await _spotifyTokenService.ForceRefreshTokenAsync(userId);
                     client.DefaultRequestHeaders.Authorization =
                         new AuthenticationHeaderValue("Bearer", accessToken);
+                    
+                    sw.Restart();
                     response = await client.GetAsync("https://api.spotify.com/v1/me/player");
+                    sw.Stop();
+                    _logger.LogInformation("Retry Spotify API returned {StatusCode} in {Elapsed}ms", response.StatusCode, sw.ElapsedMilliseconds);
                 }
                 catch (Exception refreshEx)
                 {
@@ -193,7 +201,7 @@ public class PlaybackController : ControllerBase
                 }
 
                 var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
-                var client = _httpClientFactory.CreateClient();
+                var client = _httpClientFactory.CreateClient("Spotify");
 
                 // If no context provided and it's a track URI, fetch the track's album to play from context
                 if (string.IsNullOrEmpty(contextUri) && uri.StartsWith("spotify:track:"))
@@ -322,7 +330,7 @@ public class PlaybackController : ControllerBase
             }
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
-            var client = _httpClientFactory.CreateClient();
+            var client = _httpClientFactory.CreateClient("Spotify");
 
             var request = new HttpRequestMessage(method, url);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);

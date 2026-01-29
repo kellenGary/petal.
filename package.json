@@ -4,6 +4,8 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
+    "start:tunnel": "expo start --tunnel",
+    "start:home": "EXPO_PUBLIC_API_URL=http://192.168.68.106:5164 npm run start",
     "api": "dotnet run --project api/petalAPI/PetalAPI.csproj --urls http://0.0.0.0:5164",
     "api:watch": "dotnet watch --project api/petalAPI/PetalAPI.csproj run --urls http://0.0.0.0:5164",
     "api:test": "dotnet test api/PetalAPI.Tests/PetalAPI.Tests.csproj",

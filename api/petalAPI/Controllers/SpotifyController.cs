@@ -18,23 +18,20 @@ public class SpotifyController : ControllerBase
     private readonly ILogger<SpotifyController> _logger;
     private readonly IConfiguration _configuration;
     private readonly ISpotifyTokenService _spotifyTokenService;
-    private readonly IPlaylistSyncService _playlistSyncService;
-    private readonly ISavedTracksSyncService _savedTracksSyncService;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
 
     public SpotifyController(
         IHttpClientFactory httpClientFactory,
         ILogger<SpotifyController> logger,
         IConfiguration configuration,
         ISpotifyTokenService spotifyTokenService,
-        IPlaylistSyncService playlistSyncService,
-        ISavedTracksSyncService savedTracksSyncService)
+        IServiceScopeFactory serviceScopeFactory)
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
         _configuration = configuration;
         _spotifyTokenService = spotifyTokenService;
-        _playlistSyncService = playlistSyncService;
-        _savedTracksSyncService = savedTracksSyncService;
+        _serviceScopeFactory = serviceScopeFactory;
     }
 
     /// <summary>
@@ -51,21 +48,41 @@ public class SpotifyController : ControllerBase
                 return Unauthorized(new { error = "Invalid token" });
             }
 
+            // Get token now to pass to background task (or get it there if needed, 
+            // but passing it ensures we have it valid now)
+            // Ideally we get a valid one. If it expires during sync, the sync service might fail.
+            // But usually these are valid for an hour.
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
-            var result = await _playlistSyncService.SyncUserPlaylistsAsync(userId, accessToken);
-
-            return Ok(new 
-            { 
-                success = true,
-                playlistsAdded = result.PlaylistsAdded,
-                playlistsUpdated = result.PlaylistsUpdated,
-                playlistsRemoved = result.PlaylistsRemoved,
-                syncedAt = result.SyncedAt
+            
+            // Offload to background
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    using (var scope = _serviceScopeFactory.CreateScope())
+                    {
+                        var playlistSyncService = scope.ServiceProvider.GetRequiredService<IPlaylistSyncService>();
+                        var logger = scope.ServiceProvider.GetRequiredService<ILogger<SpotifyController>>();
+                        
+                        logger.LogInformation("[Background] Starting playlist sync for user {UserId}", userId);
+                        await playlistSyncService.SyncUserPlaylistsAsync(userId, accessToken);
+                        logger.LogInformation("[Background] Completed playlist sync for user {UserId}", userId);
+                    }
+                }
+                catch (Exception bgEx)
+                {
+                    // Create a logger manually if needed, or use a static one, 
+                    // but here we can try to resolve one from the scope.
+                    // If scope creation failed we are in trouble anyway.
+                     _logger.LogError(bgEx, "[Background] Error syncing playlists for user {UserId}", userId);
+                }
             });
+
+            return Accepted(new { message = "Playlist sync started in background" });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error syncing playlists");
+            _logger.LogError(ex, "Error starting playlist sync");
             return StatusCode(500, new { error = "Internal server error", message = ex.Message });
         }
     }
@@ -85,20 +102,33 @@ public class SpotifyController : ControllerBase
             }
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
-            var result = await _savedTracksSyncService.SyncSavedTracksAsync(userId, accessToken);
+            
+            // Offload to background
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    using (var scope = _serviceScopeFactory.CreateScope())
+                    {
+                        var savedTracksSyncService = scope.ServiceProvider.GetRequiredService<ISavedTracksSyncService>();
+                        var logger = scope.ServiceProvider.GetRequiredService<ILogger<SpotifyController>>();
 
-            return Ok(new 
-            { 
-                success = true,
-                tracksAdded = result.TracksAdded,
-                tracksRemoved = result.TracksRemoved,
-                totalLikedTracks = result.TotalLikedTracks,
-                syncedAt = result.SyncedAt
+                        logger.LogInformation("[Background] Starting saved tracks sync for user {UserId}", userId);
+                        await savedTracksSyncService.SyncSavedTracksAsync(userId, accessToken);
+                        logger.LogInformation("[Background] Completed saved tracks sync for user {UserId}", userId);
+                    }
+                }
+                catch (Exception bgEx)
+                {
+                     _logger.LogError(bgEx, "[Background] Error syncing saved tracks for user {UserId}", userId);
+                }
             });
+
+            return Accepted(new { message = "Saved tracks sync started in background" });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error syncing saved tracks");
+            _logger.LogError(ex, "Error starting saved tracks sync");
             return StatusCode(500, new { error = "Internal server error", message = ex.Message });
         }
     }
@@ -119,7 +149,7 @@ public class SpotifyController : ControllerBase
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
 
-            var client = _httpClientFactory.CreateClient();
+            var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization = 
                 new AuthenticationHeaderValue("Bearer", accessToken);
 
@@ -168,7 +198,7 @@ public class SpotifyController : ControllerBase
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
 
-            var client = _httpClientFactory.CreateClient();
+            var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization = 
                 new AuthenticationHeaderValue("Bearer", accessToken);
 
@@ -216,7 +246,7 @@ public class SpotifyController : ControllerBase
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
 
-            var client = _httpClientFactory.CreateClient();
+            var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization = 
                 new AuthenticationHeaderValue("Bearer", accessToken);
 
@@ -264,7 +294,7 @@ public class SpotifyController : ControllerBase
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
 
-            var client = _httpClientFactory.CreateClient();
+            var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization = 
                 new AuthenticationHeaderValue("Bearer", accessToken);
 
@@ -311,7 +341,7 @@ public class SpotifyController : ControllerBase
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
 
-            var client = _httpClientFactory.CreateClient();
+            var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization = 
                 new AuthenticationHeaderValue("Bearer", accessToken);
 
@@ -359,7 +389,7 @@ public class SpotifyController : ControllerBase
                 return Unauthorized(new { error = "Invalid token" });
             }
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
-            var client = _httpClientFactory.CreateClient();
+            var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", accessToken);
             var response = await client.DeleteAsync($"https://api.spotify.com/v1/me/tracks?ids={songId}");
@@ -398,7 +428,7 @@ public class SpotifyController : ControllerBase
                 return Unauthorized(new { error = "Invalid token" });
             }
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
-            var client = _httpClientFactory.CreateClient();
+            var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", accessToken);
             var response = await client.PutAsync($"https://api.spotify.com/v1/me/tracks?ids={songId}", null);
@@ -438,7 +468,7 @@ public class SpotifyController : ControllerBase
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
 
-            var client = _httpClientFactory.CreateClient();
+            var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization = 
                 new AuthenticationHeaderValue("Bearer", accessToken);
 
@@ -484,7 +514,7 @@ public class SpotifyController : ControllerBase
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
 
-            var client = _httpClientFactory.CreateClient();
+            var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization = 
                 new AuthenticationHeaderValue("Bearer", accessToken);
 
@@ -531,7 +561,7 @@ public class SpotifyController : ControllerBase
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
 
-            var client = _httpClientFactory.CreateClient();
+            var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization = 
                 new AuthenticationHeaderValue("Bearer", accessToken);
 
@@ -596,7 +626,7 @@ public class SpotifyController : ControllerBase
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
 
-            var client = _httpClientFactory.CreateClient();
+            var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization = 
                 new AuthenticationHeaderValue("Bearer", accessToken);
 
@@ -644,7 +674,7 @@ public class SpotifyController : ControllerBase
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
 
-            var client = _httpClientFactory.CreateClient();
+            var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization = 
                 new AuthenticationHeaderValue("Bearer", accessToken);
 
@@ -692,7 +722,7 @@ public class SpotifyController : ControllerBase
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
 
-            var client = _httpClientFactory.CreateClient();
+            var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization = 
                 new AuthenticationHeaderValue("Bearer", accessToken);
 

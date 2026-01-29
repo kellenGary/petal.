@@ -192,6 +192,9 @@ public class UserDataController : ControllerBase
         }
     }
 
+    // Static dictionary to hold locks for each album ID to prevent race conditions during caching
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim> _albumLocks = new();
+
     /// <summary>
     /// Retrieves a specific album with its tracks. If not cached, fetches from Spotify and stores in AlbumTracks.
     /// </summary>
@@ -211,18 +214,44 @@ public class UserDataController : ControllerBase
             var album = await _context.Albums
                 .FirstOrDefaultAsync(a => a.SpotifyId == spotifyAlbumId);
 
-            // Check if we have cached album tracks
+            // Double, redundant check for cached tracks to avoid lock if possible
             var hasCachedTracks = album != null && await _context.AlbumTracks
                 .AnyAsync(at => at.AlbumId == album.Id);
 
             if (!hasCachedTracks)
             {
-                // Fetch from Spotify and cache
-                await FetchAndCacheAlbumTracksFromSpotifyAsync(spotifyAlbumId, userId.Value);
+                // Get or create a lock for this specific album
+                var albumLock = _albumLocks.GetOrAdd(spotifyAlbumId, _ => new SemaphoreSlim(1, 1));
                 
-                // Re-fetch the album after caching
-                album = await _context.Albums
-                    .FirstOrDefaultAsync(a => a.SpotifyId == spotifyAlbumId);
+                // Wait for the lock
+                await albumLock.WaitAsync();
+                
+                try 
+                {
+                    // Re-check album existence inside lock
+                    album = await _context.Albums
+                        .FirstOrDefaultAsync(a => a.SpotifyId == spotifyAlbumId);
+                        
+                    // Re-check cached tracks inside lock
+                    hasCachedTracks = album != null && await _context.AlbumTracks
+                        .AnyAsync(at => at.AlbumId == album.Id);
+
+                    if (!hasCachedTracks)
+                    {
+                        // Fetch from Spotify and cache
+                        await FetchAndCacheAlbumTracksFromSpotifyAsync(spotifyAlbumId, userId.Value);
+                        
+                        // Re-fetch the album after caching
+                        album = await _context.Albums
+                            .FirstOrDefaultAsync(a => a.SpotifyId == spotifyAlbumId);
+                    }
+                }
+                finally
+                {
+                    albumLock.Release();
+                    // Optional: Try to remove the lock if it's not being used, though handling race conditions there is tricky.
+                    // For now, keeping the SemaphoreSlim instance is low overhead.
+                }
             }
 
             if (album == null)

@@ -21,17 +21,20 @@ public class DbController : ControllerBase
     private readonly ILogger<DbController> _logger;
     private readonly AppDbContext _context;
     private readonly ISpotifyTokenService _spotifyTokenService;
+    private readonly ISpotifyDataService _spotifyDataService;
 
     public DbController(
         IHttpClientFactory httpClientFactory,
         ILogger<DbController> logger,
         AppDbContext context,
-        ISpotifyTokenService spotifyTokenService)
+        ISpotifyTokenService spotifyTokenService,
+        ISpotifyDataService spotifyDataService)
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
         _context = context;
         _spotifyTokenService = spotifyTokenService;
+        _spotifyDataService = spotifyDataService;
     }
 
     /// <summary>
@@ -275,36 +278,15 @@ public class DbController : ControllerBase
                         int order = 0;
                         foreach (var artistElement in artistsElement.EnumerateArray())
                         {
-                            var artistSpotifyId = artistElement.TryGetProperty("id", out var artistIdProp) ? artistIdProp.GetString() : null;
-                            if (string.IsNullOrEmpty(artistSpotifyId)) continue;
-
-                            var artist = await _context.Artists.FirstOrDefaultAsync(a => a.SpotifyId == artistSpotifyId);
-                            if (artist == null)
-                            {
-                                artist = new Artist
-                                {
-                                    SpotifyId = artistSpotifyId,
-                                    Name = artistElement.TryGetProperty("name", out var artistNameProp) ? artistNameProp.GetString() ?? "Unknown" : "Unknown"
-                                };
-
-                                try
-                                {
-                                    _context.Artists.Add(artist);
-                                    await _context.SaveChangesAsync();
-                                }
-                                catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("UNIQUE constraint failed") == true)
-                                {
-                                    _context.Entry(artist).State = EntityState.Detached;
-                                    artist = await _context.Artists.FirstOrDefaultAsync(a => a.SpotifyId == artistSpotifyId);
-                                }
-                            }
+                            var artist = await _spotifyDataService.GetOrCreateArtistAsync(artistElement, accessToken);
 
                             if (artist != null)
                             {
-                                var existingRelation = await _context.TrackArtists
+                                // Create track-artist relationship if it doesn't exist
+                                var existingTrackArtist = await _context.TrackArtists
                                     .FirstOrDefaultAsync(ta => ta.TrackId == dbTrack.Id && ta.ArtistId == artist.Id);
-                                
-                                if (existingRelation == null)
+
+                                if (existingTrackArtist == null)
                                 {
                                     try
                                     {
@@ -522,6 +504,83 @@ public class DbController : ControllerBase
             albumsUpdated,
             playlistsWithoutTrackCount = playlistsWithoutTrackCount.Count,
             playlistsUpdated,
+            failed
+        });
+    }
+    /// <summary>
+    /// Backfills missing genre, image, and popularity data for artists
+    /// </summary>
+    [HttpPost("backfill-artists")]
+    public async Task<IActionResult> BackfillArtists()
+    {
+        var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized("Invalid user");
+        }
+
+        var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
+        if (string.IsNullOrEmpty(accessToken))
+        {
+            return BadRequest("Could not get Spotify access token");
+        }
+
+        // Find artists missing data (genres, image, or popularity)
+        // Note: Popularity 0 is valid, but null means missing. GenresJson null means missing.
+        var artistsToBackfill = await _context.Artists
+            .Where(a => a.SpotifyId != null && (a.GenresJson == null || a.ImageUrl == null || a.Popularity == null))
+            .ToListAsync();
+
+        _logger.LogInformation("[BackfillArtists] Found {Count} artists missing rich data", artistsToBackfill.Count);
+
+        if (artistsToBackfill.Count == 0)
+        {
+            return Ok(new { message = "No artists need backfill", updated = 0 });
+        }
+
+        int updated = 0;
+        int failed = 0;
+
+        // Process sequentially to be kind to rate limits, or maybe small batches?
+        // SpotifyDataService uses single GET /artists/{id}.
+        // Batching would be better (/artists?ids=...) but SpotifyDataService is designed for single-artist fetch/update.
+        // For now, let's reuse the service logic for consistency, even if slightly slower.
+        // We can optimize SpotifyDataService later to handle batches if needed.
+        
+        foreach (var artist in artistsToBackfill)
+        {
+            try
+            {
+                // The service logic checks if missing data exists and updates it.
+                // We pass the existing name as fallback.
+                var result = await _spotifyDataService.GetOrCreateArtistAsync(artist.SpotifyId!, artist.Name, accessToken);
+                
+                if (result != null)
+                {
+                    updated++;
+                }
+                else
+                {
+                    failed++;
+                }
+
+                // Simple rate limiting
+                await Task.Delay(50);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[BackfillArtists] Error processing artist {Name} ({Id})", artist.Name, artist.SpotifyId);
+                failed++;
+            }
+        }
+
+        _logger.LogInformation("[BackfillArtists] Complete: Updated={Updated}, Failed={Failed}", updated, failed);
+
+        return Ok(new 
+        { 
+            message = "Artist backfill complete",
+            totalCandidates = artistsToBackfill.Count,
+            updated,
             failed
         });
     }

@@ -25,17 +25,20 @@ public class ListeningHistoryService : IListeningHistoryService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<ListeningHistoryService> _logger;
     private readonly IListeningSessionService _listeningSessionService;
+    private readonly ISpotifyDataService _spotifyDataService;
 
     public ListeningHistoryService(
         AppDbContext context,
         IHttpClientFactory httpClientFactory,
         ILogger<ListeningHistoryService> logger,
-        IListeningSessionService listeningSessionService)
+        IListeningSessionService listeningSessionService,
+        ISpotifyDataService spotifyDataService)
     {
         _context = context;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
         _listeningSessionService = listeningSessionService;
+        _spotifyDataService = spotifyDataService;
     }
 
     /// <summary>
@@ -253,21 +256,9 @@ public class ListeningHistoryService : IListeningHistoryService
                     int order = 0;
                     foreach (var artistElement in artistsProp.EnumerateArray())
                     {
-                        var artistSpotifyId = artistElement.TryGetProperty("id", out var artistIdProp) ? artistIdProp.GetString() : null;
-                        if (!string.IsNullOrEmpty(artistSpotifyId))
+                        var artist = await _spotifyDataService.GetOrCreateArtistAsync(artistElement, accessToken);
+                        if (artist != null)
                         {
-                            var artist = await _context.Artists.FirstOrDefaultAsync(a => a.SpotifyId == artistSpotifyId);
-                            if (artist == null)
-                            {
-                                artist = new Artist
-                                {
-                                    SpotifyId = artistSpotifyId,
-                                    Name = artistElement.TryGetProperty("name", out var artistNameProp) ? artistNameProp.GetString() ?? "Unknown" : "Unknown"
-                                };
-                                _context.Artists.Add(artist);
-                                await _context.SaveChangesAsync();
-                            }
-
                             _context.TrackArtists.Add(new TrackArtist
                             {
                                 TrackId = dbTrack.Id,
@@ -404,7 +395,7 @@ public class ListeningHistoryService : IListeningHistoryService
                     }
                 }
 
-                if (await ProcessRecentlyPlayedItemAsync(userId, item, includeLocation, latitude, longitude))
+                if (await ProcessRecentlyPlayedItemAsync(userId, item, includeLocation, accessToken, latitude, longitude))
                 {
                     totalAdded++;
                 }
@@ -437,7 +428,7 @@ public class ListeningHistoryService : IListeningHistoryService
     }
 
     private async Task<bool> ProcessRecentlyPlayedItemAsync(int userId, JsonElement item, bool includeLocation,
-        double? latitude = null, double? longitude = null)
+        string accessToken, double? latitude = null, double? longitude = null)
     {
         try
         {
@@ -550,28 +541,9 @@ public class ListeningHistoryService : IListeningHistoryService
                     int order = 0;
                     foreach (var artistElement in artistsProp.EnumerateArray())
                     {
-                        var artistSpotifyId = artistElement.TryGetProperty("id", out var artistIdProp) ? artistIdProp.GetString() : null;
-                        if (!string.IsNullOrEmpty(artistSpotifyId))
+                        var artist = await _spotifyDataService.GetOrCreateArtistAsync(artistElement, accessToken);
+                        if (artist != null)
                         {
-                            var artist = await _context.Artists.FirstOrDefaultAsync(a => a.SpotifyId == artistSpotifyId);
-                            if (artist == null)
-                            {
-                                artist = new Artist
-                                {
-                                    SpotifyId = artistSpotifyId,
-                                    Name = artistElement.TryGetProperty("name", out var artistNameProp) ? artistNameProp.GetString() ?? "Unknown" : "Unknown"
-                                };
-                                _context.Artists.Add(artist);
-                                try
-                                {
-                                    await _context.SaveChangesAsync();
-                                }
-                                catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("UNIQUE constraint failed") == true)
-                                {
-                                    _context.Entry(artist).State = EntityState.Detached;
-                                    artist = await _context.Artists.FirstOrDefaultAsync(a => a.SpotifyId == artistSpotifyId);
-                                }
-                            }
 
                             if (artist != null)
                             {
@@ -646,30 +618,10 @@ public class ListeningHistoryService : IListeningHistoryService
                     int orderExisting = 0;
                     foreach (var artistElement in artistsPropExisting.EnumerateArray())
                     {
-                        var artistSpotifyId = artistElement.TryGetProperty("id", out var artistIdPropExisting) ? artistIdPropExisting.GetString() : null;
-                        if (!string.IsNullOrEmpty(artistSpotifyId))
+                        var artist = await _spotifyDataService.GetOrCreateArtistAsync(artistElement, accessToken);
+                        if (artist != null)
                         {
-                            var artist = await _context.Artists.FirstOrDefaultAsync(a => a.SpotifyId == artistSpotifyId);
-                            if (artist == null)
-                            {
-                                artist = new Artist
-                                {
-                                    SpotifyId = artistSpotifyId,
-                                    Name = artistElement.TryGetProperty("name", out var artistNamePropExisting) ? artistNamePropExisting.GetString() ?? "Unknown" : "Unknown"
-                                };
-                                _context.Artists.Add(artist);
-                                try
-                                {
-                                    await _context.SaveChangesAsync();
-                                }
-                                catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("UNIQUE constraint failed") == true)
-                                {
-                                    _context.Entry(artist).State = EntityState.Detached;
-                                    artist = await _context.Artists.FirstOrDefaultAsync(a => a.SpotifyId == artistSpotifyId);
-                                }
-                            }
 
-                            if (artist != null)
                             {
                                 _context.TrackArtists.Add(new TrackArtist
                                 {

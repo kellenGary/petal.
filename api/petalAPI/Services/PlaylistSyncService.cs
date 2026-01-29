@@ -25,15 +25,18 @@ public class PlaylistSyncService : IPlaylistSyncService
     private readonly AppDbContext _context;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<PlaylistSyncService> _logger;
+    private readonly ISpotifyDataService _spotifyDataService;
 
     public PlaylistSyncService(
         AppDbContext context,
         IHttpClientFactory httpClientFactory,
-        ILogger<PlaylistSyncService> logger)
+        ILogger<PlaylistSyncService> logger,
+        ISpotifyDataService spotifyDataService)
     {
         _context = context;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
+        _spotifyDataService = spotifyDataService;
     }
 
     public async Task<PlaylistSyncResult> SyncUserPlaylistsAsync(int userId, string accessToken)
@@ -258,75 +261,90 @@ public class PlaylistSyncService : IPlaylistSyncService
             _logger.LogDebug("[PlaylistSync] Fetched {Count} tracks for playlist {PlaylistId}", 
                 spotifyTracks.Count, spotifyPlaylistId);
 
-            // Clear existing playlist tracks
-            var existingPlaylistTracks = await _context.PlaylistTracks
-                .Where(pt => pt.PlaylistId == playlistId)
-                .ToListAsync();
-            
-            _context.PlaylistTracks.RemoveRange(existingPlaylistTracks);
-            await _context.SaveChangesAsync();
-
-            // Add new tracks
-            int position = 0;
-            foreach (var trackItem in spotifyTracks)
+            // Use a transaction to ensure delete+insert is atomic and prevents race conditions
+            // where another sync process might insert tracks in between our delete and insert.
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                if (!trackItem.TryGetProperty("track", out var trackElement) || 
-                    trackElement.ValueKind == JsonValueKind.Null)
+                // Clear existing playlist tracks
+                var existingPlaylistTracks = await _context.PlaylistTracks
+                    .Where(pt => pt.PlaylistId == playlistId)
+                    .ToListAsync();
+                
+                _context.PlaylistTracks.RemoveRange(existingPlaylistTracks);
+                await _context.SaveChangesAsync();
+
+                // Add new tracks
+                int position = 0;
+                foreach (var trackItem in spotifyTracks)
                 {
+                    if (!trackItem.TryGetProperty("track", out var trackElement) || 
+                        trackElement.ValueKind == JsonValueKind.Null)
+                    {
+                        position++;
+                        continue;
+                    }
+
+                    var spotifyId = trackElement.TryGetProperty("id", out var idProp) 
+                        ? idProp.GetString() 
+                        : null;
+
+                    if (string.IsNullOrEmpty(spotifyId))
+                    {
+                        position++;
+                        continue;
+                    }
+
+                    // Get or create the track
+                    // Note: We might want to move this outside the transaction if it takes too long, 
+                    // but keeping it here ensures consistency. 
+                    // However, GetOrCreateTrackAsync saves changes itself, which is fine in a transaction.
+                    var track = await GetOrCreateTrackAsync(trackElement, accessToken);
+                    if (track == null)
+                    {
+                        position++;
+                        continue;
+                    }
+
+                    // Get added_at and added_by info
+                    var addedAt = trackItem.TryGetProperty("added_at", out var addedAtProp) && 
+                                  !string.IsNullOrEmpty(addedAtProp.GetString())
+                        ? DateTime.Parse(addedAtProp.GetString()!)
+                        : (DateTime?)null;
+
+                    string? addedBySpotifyId = null;
+                    if (trackItem.TryGetProperty("added_by", out var addedBy) && 
+                        addedBy.TryGetProperty("id", out var addedByIdProp))
+                    {
+                        addedBySpotifyId = addedByIdProp.GetString();
+                    }
+
+                    // Create PlaylistTrack entry
+                    var playlistTrack = new PlaylistTrack
+                    {
+                        PlaylistId = playlistId,
+                        TrackId = track.Id,
+                        Position = position,
+                        AddedAt = addedAt,
+                        AddedBySpotifyId = addedBySpotifyId
+                    };
+
+                    _context.PlaylistTracks.Add(playlistTrack);
+                    tracksAdded++;
                     position++;
-                    continue;
                 }
 
-                var spotifyId = trackElement.TryGetProperty("id", out var idProp) 
-                    ? idProp.GetString() 
-                    : null;
-
-                if (string.IsNullOrEmpty(spotifyId))
-                {
-                    position++;
-                    continue;
-                }
-
-                // Get or create the track
-                var track = await GetOrCreateTrackAsync(trackElement);
-                if (track == null)
-                {
-                    position++;
-                    continue;
-                }
-
-                // Get added_at and added_by info
-                var addedAt = trackItem.TryGetProperty("added_at", out var addedAtProp) && 
-                              !string.IsNullOrEmpty(addedAtProp.GetString())
-                    ? DateTime.Parse(addedAtProp.GetString()!)
-                    : (DateTime?)null;
-
-                string? addedBySpotifyId = null;
-                if (trackItem.TryGetProperty("added_by", out var addedBy) && 
-                    addedBy.TryGetProperty("id", out var addedByIdProp))
-                {
-                    addedBySpotifyId = addedByIdProp.GetString();
-                }
-
-                // Create PlaylistTrack entry
-                var playlistTrack = new PlaylistTrack
-                {
-                    PlaylistId = playlistId,
-                    TrackId = track.Id,
-                    Position = position,
-                    AddedAt = addedAt,
-                    AddedBySpotifyId = addedBySpotifyId
-                };
-
-                _context.PlaylistTracks.Add(playlistTrack);
-                tracksAdded++;
-                position++;
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                
+                _logger.LogDebug("[PlaylistSync] Synced {Count} tracks for playlist {PlaylistId}", 
+                    tracksAdded, spotifyPlaylistId);
             }
-
-            await _context.SaveChangesAsync();
-            
-            _logger.LogDebug("[PlaylistSync] Synced {Count} tracks for playlist {PlaylistId}", 
-                tracksAdded, spotifyPlaylistId);
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
         catch (Exception ex)
         {
@@ -416,7 +434,7 @@ public class PlaylistSyncService : IPlaylistSyncService
         return allPlaylists;
     }
 
-    private async Task<Track?> GetOrCreateTrackAsync(JsonElement trackElement)
+    private async Task<Track?> GetOrCreateTrackAsync(JsonElement trackElement, string accessToken)
     {
         var spotifyId = trackElement.TryGetProperty("id", out var idProp) 
             ? idProp.GetString() 
@@ -491,7 +509,7 @@ public class PlaylistSyncService : IPlaylistSyncService
             int order = 0;
             foreach (var artistElement in artistsElement.EnumerateArray())
             {
-                var artist = await GetOrCreateArtistAsync(artistElement);
+                var artist = await _spotifyDataService.GetOrCreateArtistAsync(artistElement, accessToken);
                 if (artist != null)
                 {
                     var existingTrackArtist = await _context.TrackArtists
@@ -599,64 +617,5 @@ public class PlaylistSyncService : IPlaylistSyncService
             return null;
         }
     }
-
-    private async Task<Artist?> GetOrCreateArtistAsync(JsonElement artistElement)
-    {
-        var spotifyId = artistElement.TryGetProperty("id", out var idProp) 
-            ? idProp.GetString() 
-            : null;
-
-        if (string.IsNullOrEmpty(spotifyId))
-        {
-            return null;
-        }
-
-        var existingArtist = await _context.Artists
-            .FirstOrDefaultAsync(a => a.SpotifyId == spotifyId);
-
-        if (existingArtist != null)
-        {
-            return existingArtist;
-        }
-
-        string? imageUrl = null;
-        if (artistElement.TryGetProperty("images", out var imagesElement) && 
-            imagesElement.ValueKind == JsonValueKind.Array && 
-            imagesElement.GetArrayLength() > 0)
-        {
-            imageUrl = imagesElement[0].TryGetProperty("url", out var urlProp) 
-                ? urlProp.GetString() 
-                : null;
-        }
-
-        var artist = new Artist
-        {
-            SpotifyId = spotifyId,
-            Name = artistElement.TryGetProperty("name", out var nameProp) 
-                ? nameProp.GetString() ?? "Unknown" 
-                : "Unknown",
-            ImageUrl = imageUrl,
-            Popularity = artistElement.TryGetProperty("popularity", out var popularityProp) 
-                ? popularityProp.GetInt32() 
-                : null
-        };
-
-        try
-        {
-            _context.Artists.Add(artist);
-            await _context.SaveChangesAsync();
-            return artist;
-        }
-        catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("UNIQUE constraint failed") == true)
-        {
-            _context.Entry(artist).State = EntityState.Detached;
-            var fetchedArtist = await _context.Artists.FirstOrDefaultAsync(a => a.SpotifyId == spotifyId);
-            if (fetchedArtist != null)
-            {
-                return fetchedArtist;
-            }
-            _logger.LogError(ex, "[PlaylistSync] Failed to create or fetch artist: {SpotifyId}", spotifyId);
-            return null;
-        }
-    }
 }
+

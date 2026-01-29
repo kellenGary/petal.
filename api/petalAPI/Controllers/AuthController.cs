@@ -1,9 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using System.Net.Http.Headers;
-using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
-using PetalAPI.Data;
-using PetalAPI.Models;
 using PetalAPI.Services;
 
 namespace PetalAPI.Controllers;
@@ -12,27 +7,21 @@ namespace PetalAPI.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<AuthController> _logger;
-    private readonly IConfiguration _configuration;
-    private readonly AppDbContext _context;
     private readonly IJwtService _jwtService;
-    private readonly IListeningHistoryService _listeningHistoryService;
+    private readonly ISpotifyAuthService _spotifyAuthService;
+    private readonly IUserService _userService;
 
     public AuthController(
-        IHttpClientFactory httpClientFactory,
         ILogger<AuthController> logger,
-        IConfiguration configuration,
-        AppDbContext context,
         IJwtService jwtService,
-        IListeningHistoryService listeningHistoryService)
+        ISpotifyAuthService spotifyAuthService,
+        IUserService userService)
     {
-        _httpClientFactory = httpClientFactory;
         _logger = logger;
-        _configuration = configuration;
-        _context = context;
         _jwtService = jwtService;
-        _listeningHistoryService = listeningHistoryService;
+        _spotifyAuthService = spotifyAuthService;
+        _userService = userService;
     }
 
     /// <summary>
@@ -54,143 +43,23 @@ public class AuthController : ControllerBase
 
         try
         {
-            var clientId = _configuration["Spotify:ClientId"];
-            var clientSecret = _configuration["Spotify:ClientSecret"];
-            var redirectUri = _configuration["Spotify:RedirectUri"];
-
-            _logger.LogInformation("[API] Exchanging code for token - ClientId: {ClientId}, RedirectUri: {RedirectUri}",
-                clientId, redirectUri);
-
-            var client = _httpClientFactory.CreateClient();
-            
-            var authValue = Convert.ToBase64String(
-                System.Text.Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}"));
-            client.DefaultRequestHeaders.Authorization = 
-                new AuthenticationHeaderValue("Basic", authValue);
-
-            var formData = new Dictionary<string, string?>
-            {
-                { "grant_type", "authorization_code" },
-                { "code", code },
-                { "redirect_uri", redirectUri }
-            };
-
-            _logger.LogInformation("[API] Posting to Spotify token endpoint");
-            var response = await client.PostAsync(
-                "https://accounts.spotify.com/api/token",
-                new FormUrlEncodedContent(formData));
-
-            _logger.LogInformation("[API] Spotify token response status: {StatusCode}", response.StatusCode);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                _logger.LogError("[API] Token exchange failed: {Error}", error);
-                return StatusCode((int)response.StatusCode, new { error = "Failed to exchange code for token", details = error });
-            }
-
-            var content = await response.Content.ReadAsStringAsync();
-            _logger.LogInformation("[API] Spotify token response: {Content}", content);
-            
-            var tokenData = JsonSerializer.Deserialize<JsonElement>(content);
-            var accessToken = tokenData.GetProperty("access_token").GetString()!;
-            var refreshToken = tokenData.GetProperty("refresh_token").GetString()!;
-            var expiresIn = tokenData.GetProperty("expires_in").GetInt32();
-            
+            // 1. Exchange code for Spotify tokens
+            var (accessToken, refreshToken, expiresIn) = await _spotifyAuthService.ExchangeCodeForTokenAsync(code, null);
             _logger.LogInformation("[API] Successfully retrieved access token");
 
-            // Get Spotify user profile
-            var profileClient = _httpClientFactory.CreateClient();
-            profileClient.DefaultRequestHeaders.Authorization = 
-                new AuthenticationHeaderValue("Bearer", accessToken);
+            // 2. Get Spotify user profile
+            var (spotifyId, displayName, email, profileImageUrl) = await _spotifyAuthService.GetSpotifyProfileAsync(accessToken);
+            _logger.LogInformation("[API] Retrieved Spotify profile for {SpotifyId}", spotifyId);
             
-            var profileResponse = await profileClient.GetAsync("https://api.spotify.com/v1/me");
+            // 3. Find or create user
+            var (user, isNewUser) = await _userService.FindOrCreateUserAsync(
+                spotifyId, displayName, email, profileImageUrl, 
+                accessToken, refreshToken, expiresIn);
+            _logger.LogInformation("[API] User found/created: {UserId}", user.Id);
             
-            if (!profileResponse.IsSuccessStatusCode)
-            {
-                var profileError = await profileResponse.Content.ReadAsStringAsync();
-                _logger.LogError("[API] Failed to fetch Spotify profile. Status: {StatusCode}, Response: {Error}", 
-                    profileResponse.StatusCode, profileError);
-                return StatusCode(500, new { error = "Failed to fetch user profile", details = profileError });
-            }
-            
-            var profileContent = await profileResponse.Content.ReadAsStringAsync();
-            var profileData = JsonSerializer.Deserialize<JsonElement>(profileContent);
-            
-            var spotifyId = profileData.GetProperty("id").GetString()!;
-            var displayName = profileData.TryGetProperty("display_name", out var name) 
-                ? name.GetString() : null;
-            var email = profileData.TryGetProperty("email", out var emailProp) 
-                ? emailProp.GetString() : null;
-            
-            string? profileImageUrl = null;
-            if (profileData.TryGetProperty("images", out var images) && 
-                images.GetArrayLength() > 0)
-            {
-                profileImageUrl = images[0].GetProperty("url").GetString();
-            }
-            
-            // Find or create user
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.SpotifyId == spotifyId);
-            var isNewUser = false;
-            if (user == null)
-            {
-                user = new User
-                {
-                    SpotifyId = spotifyId,
-                    DisplayName = displayName,
-                    Handle = displayName != null ? displayName.Replace(" ", string.Empty).ToLowerInvariant() : null,
-                    Bio = string.Empty,
-                    Email = email,
-                    ProfileImageUrl = profileImageUrl,
-                    HasCompletedProfile = false,
-                    SpotifyAccessToken = accessToken,
-                    SpotifyRefreshToken = refreshToken,
-                    TokenExpiresAt = DateTime.UtcNow.AddSeconds(expiresIn),
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-                isNewUser = true;
-                _context.Users.Add(user);
-                _logger.LogInformation("[API] Created new user with Spotify ID: {SpotifyId}", spotifyId);
-            }
-            else
-            {
-                user.DisplayName = displayName;
-                if (string.IsNullOrWhiteSpace(user.Handle) && displayName != null)
-                {
-                    user.Handle = displayName.Replace(" ", string.Empty).ToLowerInvariant();
-                }
-                user.Email = email;
-                user.ProfileImageUrl = profileImageUrl;
-                user.SpotifyAccessToken = accessToken;
-                user.SpotifyRefreshToken = refreshToken;
-                user.TokenExpiresAt = DateTime.UtcNow.AddSeconds(expiresIn);
-                user.UpdatedAt = DateTime.UtcNow;
-                
-                _logger.LogInformation("[API] Updated existing user with Spotify ID: {SpotifyId}", spotifyId);
-            }
-            
-            await _context.SaveChangesAsync();
-            
-            // If new user, sync their initial listening history
-            if (isNewUser)
-            {
-                try
-                {
-                    _logger.LogInformation("[API] Starting initial listening history sync for new user {UserId}", user.Id);
-                    await _listeningHistoryService.SyncInitialListeningHistoryAsync(user.Id, accessToken);
-                }
-                catch (Exception syncEx)
-                {
-                    _logger.LogError(syncEx, "[API] Error syncing initial listening history for user {UserId}", user.Id);
-                    // Don't fail the login if sync fails, log it and continue
-                }
-            }
-            
-            // Generate JWT token
+            // 4. Generate JWT token
             var jwt = _jwtService.GenerateToken(user);
+            _logger.LogInformation("[API] JWT generated for user {UserId}", user.Id);
             
             return Ok(new
             {
@@ -208,6 +77,15 @@ public class AuthController : ControllerBase
                     hasCompletedProfile = user.HasCompletedProfile
                 }
             });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (HttpRequestException ex)
+        {
+             _logger.LogError(ex, "[API] External service error during callback");
+            return StatusCode(502, new { error = "External service error", details = ex.Message });
         }
         catch (Exception ex)
         {

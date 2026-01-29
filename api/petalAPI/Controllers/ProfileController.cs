@@ -162,9 +162,51 @@ public class ProfileController : ControllerBase
         }
     }
 
-    private async Task<IActionResult> FetchTopArtistsForUser(int userId)
+    private async Task<IActionResult> FetchTopArtistsForUser(int targetUserId)
     {
-        var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
+        var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        int.TryParse(currentUserIdClaim?.Value, out var currentUserId);
+        
+        var isSelf = currentUserId == targetUserId;
+
+        // 1. Check Cache First
+        var targetUser = await _context.Users.FindAsync(targetUserId);
+        if (targetUser == null) return NotFound(new { error = "User not found" });
+
+        bool isCacheValid = targetUser.TopArtistsUpdatedAt.HasValue && 
+                            targetUser.TopArtistsUpdatedAt.Value > DateTime.UtcNow.AddHours(-24) &&
+                            !string.IsNullOrEmpty(targetUser.TopArtistsJson);
+
+        if (isCacheValid)
+        {
+            try 
+            {
+                var cachedStats = JsonSerializer.Deserialize<JsonElement>(targetUser.TopArtistsJson!);
+                return Ok(new { topItems = cachedStats });
+            }
+            catch (JsonException) 
+            { 
+                 // Corrupt cache, force refresh if self
+            }
+        }
+
+        // 2. Refresh from Spotify (Only if Self)
+        // Only auto-refresh if it's the current user viewing their own profile
+        var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(targetUserId, autoRefresh: isSelf);
+        
+        if (string.IsNullOrEmpty(accessToken))
+        {
+            // If we have stale cache, return that instead of empty
+            if (!string.IsNullOrEmpty(targetUser.TopArtistsJson))
+            {
+                var cachedStats = JsonSerializer.Deserialize<JsonElement>(targetUser.TopArtistsJson);
+                return Ok(new { topItems = cachedStats });
+            }
+
+            // If no token and no cache, return empty
+            return Ok(new { topItems = new { items = new object[] {} } });
+        }
+
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = 
             new AuthenticationHeaderValue("Bearer", accessToken);
@@ -176,6 +218,14 @@ public class ProfileController : ControllerBase
         {
             var error = await response.Content.ReadAsStringAsync();
             _logger.LogError("Spotify API error fetching top artists: {Error}", error);
+            
+            // Fallback to cache if available
+             if (!string.IsNullOrEmpty(targetUser.TopArtistsJson))
+            {
+                var cachedStats = JsonSerializer.Deserialize<JsonElement>(targetUser.TopArtistsJson);
+                return Ok(new { topItems = cachedStats });
+            }
+
             return StatusCode((int)response.StatusCode, new 
             { 
                 error = "Failed to fetch top artists from Spotify",
@@ -183,9 +233,16 @@ public class ProfileController : ControllerBase
             });
         }
 
+        var jsonString = await response.Content.ReadAsStringAsync();
+        
+        // 3. Update Cache
+        targetUser.TopArtistsJson = jsonString;
+        targetUser.TopArtistsUpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
         var stats = new
         {
-            topItems = JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync())
+            topItems = JsonSerializer.Deserialize<JsonElement>(jsonString)
         };
 
         return Ok(stats);

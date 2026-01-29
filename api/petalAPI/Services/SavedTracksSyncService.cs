@@ -24,15 +24,18 @@ public class SavedTracksSyncService : ISavedTracksSyncService
     private readonly AppDbContext _context;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<SavedTracksSyncService> _logger;
+    private readonly ISpotifyDataService _spotifyDataService;
 
     public SavedTracksSyncService(
         AppDbContext context,
         IHttpClientFactory httpClientFactory,
-        ILogger<SavedTracksSyncService> logger)
+        ILogger<SavedTracksSyncService> logger,
+        ISpotifyDataService spotifyDataService)
     {
         _context = context;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
+        _spotifyDataService = spotifyDataService;
     }
 
     public async Task<SavedTracksSyncResult> SyncSavedTracksAsync(int userId, string accessToken)
@@ -93,7 +96,8 @@ public class SavedTracksSyncService : ISavedTracksSyncService
                 }
 
                 // Get or create the track (and related album/artists)
-                var track = await GetOrCreateTrackAsync(trackElement);
+                // Get or create the track (and related album/artists)
+                var track = await GetOrCreateTrackAsync(trackElement, accessToken);
                 if (track == null)
                 {
                     continue;
@@ -197,7 +201,7 @@ public class SavedTracksSyncService : ISavedTracksSyncService
         return allTracks;
     }
 
-    private async Task<Track?> GetOrCreateTrackAsync(JsonElement trackElement)
+    private async Task<Track?> GetOrCreateTrackAsync(JsonElement trackElement, string accessToken)
     {
         var spotifyId = trackElement.TryGetProperty("id", out var idProp) 
             ? idProp.GetString() 
@@ -229,7 +233,8 @@ public class SavedTracksSyncService : ISavedTracksSyncService
             }
 
             // Ensure artist relationships exist
-            await EnsureTrackArtistsAsync(existingTrack.Id, trackElement);
+            // Ensure artist relationships exist
+            await EnsureTrackArtistsAsync(existingTrack.Id, trackElement, accessToken);
 
             return existingTrack;
         }
@@ -291,7 +296,7 @@ public class SavedTracksSyncService : ISavedTracksSyncService
             int order = 0;
             foreach (var artistElement in artistsElement.EnumerateArray())
             {
-                var artist = await GetOrCreateArtistAsync(artistElement);
+                var artist = await _spotifyDataService.GetOrCreateArtistAsync(artistElement, accessToken);
                 if (artist != null)
                 {
                     // Check if track-artist relationship already exists
@@ -325,7 +330,7 @@ public class SavedTracksSyncService : ISavedTracksSyncService
         return track;
     }
 
-    private async Task EnsureTrackArtistsAsync(int trackId, JsonElement trackElement)
+    private async Task EnsureTrackArtistsAsync(int trackId, JsonElement trackElement, string accessToken)
     {
         if (!trackElement.TryGetProperty("artists", out var artistsElement) || 
             artistsElement.ValueKind != JsonValueKind.Array)
@@ -343,7 +348,7 @@ public class SavedTracksSyncService : ISavedTracksSyncService
         int order = 0;
         foreach (var artistElement in artistsElement.EnumerateArray())
         {
-            var artist = await GetOrCreateArtistAsync(artistElement);
+            var artist = await _spotifyDataService.GetOrCreateArtistAsync(artistElement, accessToken);
             if (artist != null)
             {
                 var existingTrackArtist = await _context.TrackArtists
@@ -460,90 +465,6 @@ public class SavedTracksSyncService : ISavedTracksSyncService
             return null;
         }
     }
-
-    private async Task<Artist?> GetOrCreateArtistAsync(JsonElement artistElement)
-    {
-        var spotifyId = artistElement.TryGetProperty("id", out var idProp) 
-            ? idProp.GetString() 
-            : null;
-
-        if (string.IsNullOrEmpty(spotifyId))
-        {
-            return null;
-        }
-
-        // Check if artist already exists
-        var existingArtist = await _context.Artists
-            .FirstOrDefaultAsync(a => a.SpotifyId == spotifyId);
-
-        if (existingArtist != null)
-        {
-            return existingArtist;
-        }
-
-        // Get image URL if available (from full artist object)
-        string? imageUrl = null;
-        if (artistElement.TryGetProperty("images", out var imagesElement) && 
-            imagesElement.ValueKind == JsonValueKind.Array && 
-            imagesElement.GetArrayLength() > 0)
-        {
-            imageUrl = imagesElement[0].TryGetProperty("url", out var urlProp) 
-                ? urlProp.GetString() 
-                : null;
-        }
-
-        // Get genres if available
-        string? genresJson = null;
-        if (artistElement.TryGetProperty("genres", out var genresElement) && 
-            genresElement.ValueKind == JsonValueKind.Array)
-        {
-            var genres = new List<string>();
-            foreach (var genre in genresElement.EnumerateArray())
-            {
-                var genreStr = genre.GetString();
-                if (!string.IsNullOrEmpty(genreStr))
-                {
-                    genres.Add(genreStr);
-                }
-            }
-            if (genres.Count > 0)
-            {
-                genresJson = JsonSerializer.Serialize(genres);
-            }
-        }
-
-        var artist = new Artist
-        {
-            SpotifyId = spotifyId,
-            Name = artistElement.TryGetProperty("name", out var nameProp) 
-                ? nameProp.GetString() ?? "Unknown" 
-                : "Unknown",
-            GenresJson = genresJson,
-            ImageUrl = imageUrl,
-            Popularity = artistElement.TryGetProperty("popularity", out var popularityProp) 
-                ? popularityProp.GetInt32() 
-                : null
-        };
-
-        try
-        {
-            _context.Artists.Add(artist);
-            await _context.SaveChangesAsync();
-            _logger.LogDebug("[SavedTracksSync] Created artist: {ArtistName} ({SpotifyId})", artist.Name, spotifyId);
-            return artist;
-        }
-        catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("UNIQUE constraint failed") == true)
-        {
-            // Another process inserted this artist, fetch it
-            _context.Entry(artist).State = EntityState.Detached;
-            var fetchedArtist = await _context.Artists.FirstOrDefaultAsync(a => a.SpotifyId == spotifyId);
-            if (fetchedArtist != null)
-            {
-                _logger.LogDebug("[SavedTracksSync] Artist already exists (race condition): {SpotifyId}", spotifyId);
-                return fetchedArtist;
-            }
-            _logger.LogError(ex, "[SavedTracksSync] Failed to create or fetch artist: {SpotifyId}", spotifyId);
-            return null;
-        }
-    }
 }
+
+
