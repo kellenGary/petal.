@@ -126,13 +126,16 @@ const styles = StyleSheet.create({
     profileImageContainer: {
         marginTop: 8,
         marginBottom: 12,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 2,
+        elevation: 3,
     },
     profileImage: {
         width: 100,
         height: 100,
         borderRadius: 16,
-        borderWidth: 2,
-        borderColor: "#fff",
     },
     profileName: {
         marginBottom: 4,

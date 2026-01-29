@@ -20,15 +20,25 @@ interface FollowCounts {
   following: number;
 }
 
+interface GraphConnection {
+  followerId: number;
+  followeeId: number;
+}
+
 class FollowApiService {
   /**
    * Follow a user
    * @param userId - The ID of the user to follow
    */
-  async followUser(userId: number): Promise<{ message: string; isFollowing: boolean }> {
-    const response = await api.makeAuthenticatedRequest(`/api/follow/${userId}`, {
-      method: "POST",
-    });
+  async followUser(
+    userId: number,
+  ): Promise<{ message: string; isFollowing: boolean }> {
+    const response = await api.makeAuthenticatedRequest(
+      `/api/follow/${userId}`,
+      {
+        method: "POST",
+      },
+    );
 
     if (!response.ok) {
       const error = await response.json();
@@ -42,10 +52,15 @@ class FollowApiService {
    * Unfollow a user
    * @param userId - The ID of the user to unfollow
    */
-  async unfollowUser(userId: number): Promise<{ message: string; isFollowing: boolean }> {
-    const response = await api.makeAuthenticatedRequest(`/api/follow/${userId}`, {
-      method: "DELETE",
-    });
+  async unfollowUser(
+    userId: number,
+  ): Promise<{ message: string; isFollowing: boolean }> {
+    const response = await api.makeAuthenticatedRequest(
+      `/api/follow/${userId}`,
+      {
+        method: "DELETE",
+      },
+    );
 
     if (!response.ok) {
       const error = await response.json();
@@ -60,7 +75,9 @@ class FollowApiService {
    * @param userId - The ID of the user to check
    */
   async getFollowStatus(userId: number): Promise<boolean> {
-    const response = await api.makeAuthenticatedRequest(`/api/follow/status/${userId}`);
+    const response = await api.makeAuthenticatedRequest(
+      `/api/follow/status/${userId}`,
+    );
 
     if (!response.ok) {
       throw new Error("Failed to get follow status");
@@ -75,14 +92,39 @@ class FollowApiService {
    * @param userIds - Array of user IDs to check
    * @returns Object mapping user IDs to their follow status
    */
-  async getFollowStatusBatch(userIds: number[]): Promise<Record<number, boolean>> {
-    const response = await api.makeAuthenticatedRequest("/api/follow/status/batch", {
-      method: "POST",
-      body: JSON.stringify(userIds),
-    });
+  async getFollowStatusBatch(
+    userIds: number[],
+  ): Promise<Record<number, boolean>> {
+    const response = await api.makeAuthenticatedRequest(
+      "/api/follow/status/batch",
+      {
+        method: "POST",
+        body: JSON.stringify(userIds),
+      },
+    );
 
     if (!response.ok) {
       throw new Error("Failed to get follow status batch");
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Get all connections between a list of users
+   * @param userIds - Array of user IDs to check connections between
+   */
+  async getGraphConnections(userIds: number[]): Promise<GraphConnection[]> {
+    const response = await api.makeAuthenticatedRequest(
+      "/api/follow/connections",
+      {
+        method: "POST",
+        body: JSON.stringify(userIds),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to get graph connections");
     }
 
     return await response.json();
@@ -94,13 +136,17 @@ class FollowApiService {
    * @param limit - Number of results to return (default 50)
    * @param offset - Number of results to skip (default 0)
    */
-  async getFollowers(userId: number, limit: number = 50, offset: number = 0): Promise<FollowListResponse> {
+  async getFollowers(
+    userId: number,
+    limit: number = 50,
+    offset: number = 0,
+  ): Promise<FollowListResponse> {
     const params = new URLSearchParams();
     params.append("limit", limit.toString());
     params.append("offset", offset.toString());
 
     const response = await api.makeAuthenticatedRequest(
-      `/api/follow/followers/${userId}?${params.toString()}`
+      `/api/follow/followers/${userId}?${params.toString()}`,
     );
 
     if (!response.ok) {
@@ -116,13 +162,17 @@ class FollowApiService {
    * @param limit - Number of results to return (default 50)
    * @param offset - Number of results to skip (default 0)
    */
-  async getFollowing(userId: number, limit: number = 50, offset: number = 0): Promise<FollowListResponse> {
+  async getFollowing(
+    userId: number,
+    limit: number = 50,
+    offset: number = 0,
+  ): Promise<FollowListResponse> {
     const params = new URLSearchParams();
     params.append("limit", limit.toString());
     params.append("offset", offset.toString());
 
     const response = await api.makeAuthenticatedRequest(
-      `/api/follow/following/${userId}?${params.toString()}`
+      `/api/follow/following/${userId}?${params.toString()}`,
     );
 
     if (!response.ok) {
@@ -137,7 +187,9 @@ class FollowApiService {
    * @param userId - The ID of the user
    */
   async getFollowCounts(userId: number): Promise<FollowCounts> {
-    const response = await api.makeAuthenticatedRequest(`/api/follow/counts/${userId}`);
+    const response = await api.makeAuthenticatedRequest(
+      `/api/follow/counts/${userId}`,
+    );
 
     if (!response.ok) {
       throw new Error("Failed to get follow counts");
@@ -152,7 +204,10 @@ class FollowApiService {
    * @param isCurrentlyFollowing - Current follow status
    * @returns New follow status
    */
-  async toggleFollow(userId: number, isCurrentlyFollowing: boolean): Promise<boolean> {
+  async toggleFollow(
+    userId: number,
+    isCurrentlyFollowing: boolean,
+  ): Promise<boolean> {
     if (isCurrentlyFollowing) {
       await this.unfollowUser(userId);
       return false;

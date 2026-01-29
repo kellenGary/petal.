@@ -58,7 +58,7 @@ export default function LikeButton({
       style={[
         styles.actionButton,
         {
-          backgroundColor: liked ? Colors.likeButton.liked : colors.card,
+          backgroundColor: liked ? colors.likeButton.liked : colors.card,
           opacity: likeLoading ? 0.7 : 1,
         },
       ]}

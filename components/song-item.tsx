@@ -7,7 +7,7 @@ import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Image } from "expo-image";
 import { RelativePathString, router } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import EqualizerBar from "./equalizer-bar";
 
 interface SongItemProps {
@@ -52,7 +52,6 @@ export default function SongItem({
       key={id}
       style={[
         styles.songItem,
-        { backgroundColor: isActive ? colors.card : "transparent" },
       ]}
       onPress={handlePress}
     >

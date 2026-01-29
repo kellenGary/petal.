@@ -23,12 +23,8 @@ export default function SearchBar({
     return (
         <View
             style={[
+                { zIndex: 100, backgroundColor: colors.card },
                 styles.container,
-                {
-                    backgroundColor: isDark
-                        ? "rgba(255,255,255,0.1)"
-                        : "rgba(0,0,0,0.05)",
-                },
                 containerStyle,
             ]}
         >

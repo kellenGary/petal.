@@ -95,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signIn(token: string, userData: User) {
+    console.log("[AuthContext] Signing in user:", userData.id);
     try {
       // Reset sync flag so playlists sync on every login
       hasSyncedPlaylists.current = false;
@@ -112,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signOut() {
+    console.log("[AuthContext] Signing out");
     try {
       await SecureStore.deleteItemAsync("jwt_token");
       await SecureStore.deleteItemAsync("user");

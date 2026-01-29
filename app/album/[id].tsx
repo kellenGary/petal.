@@ -35,14 +35,8 @@ export default function AlbumScreen() {
 
     async function fetchAlbum() {
       setLoading(true);
-      console.log("[AlbumScreen] Fetching album with id:", id);
       try {
         const fetchedAlbum = await spotifyApi.getAlbumWithTracks(id as string);
-        console.log(
-          "[AlbumScreen] Received album data:",
-          JSON.stringify(fetchedAlbum, null, 2),
-        );
-        console.log("[AlbumScreen] Album tracks:", fetchedAlbum.tracks);
         setAlbum(fetchedAlbum);
         setTracks(fetchedAlbum.tracks?.items || []);
       } catch (error) {

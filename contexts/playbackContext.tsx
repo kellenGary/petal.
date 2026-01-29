@@ -216,7 +216,7 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
       fetchPlaybackState();
 
       // Poll for updates every 5 seconds
-      const interval = setInterval(fetchPlaybackState, 1000);
+      const interval = setInterval(fetchPlaybackState, 5000);
       return () => clearInterval(interval);
     } else if (!isAuthenticated) {
       setPlaybackState(null);

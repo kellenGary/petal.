@@ -12,7 +12,7 @@ export const Colors = {
   light: {
     // Standard Expo/React Native references
     text: "#262626", // foreground
-    background: "#FCFCFC", // background
+    background: "#fcf8f2ff", // background
     tint: tintColorLight,
     icon: "#737373", // muted-foreground
     tabIconDefault: "#737373",

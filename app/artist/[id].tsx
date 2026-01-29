@@ -30,7 +30,6 @@ export default function ArtistScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const colors = Colors[isDark ? "dark" : "light"];
-
   useEffect(() => {
     if (!id) return;
 

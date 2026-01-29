@@ -6,6 +6,7 @@ import {
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import "react-native-reanimated";
 
 import { Colors } from "@/constants/theme";
@@ -113,22 +114,24 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <AuthProvider>
-      <LocationProvider>
-        <PlaybackProvider>
-          <ListeningHistoryProvider>
-            <ThemeProvider
-              value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-            >
-              <RootLayoutNav />
-              <StatusBar
-                style={colorScheme === "dark" ? "light" : "dark"}
-                translucent
-              />
-            </ThemeProvider>
-          </ListeningHistoryProvider>
-        </PlaybackProvider>
-      </LocationProvider>
-    </AuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+        <LocationProvider>
+          <PlaybackProvider>
+            <ListeningHistoryProvider>
+              <ThemeProvider
+                value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+              >
+                <RootLayoutNav />
+                <StatusBar
+                  style={colorScheme === "dark" ? "light" : "dark"}
+                  translucent
+                />
+              </ThemeProvider>
+            </ListeningHistoryProvider>
+          </PlaybackProvider>
+        </LocationProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }

@@ -2,31 +2,26 @@ import ExploreContent from "@/components/explore-content";
 import FilterBubble from "@/components/filter-bubble";
 import GraphView from "@/components/graph-view";
 import SearchBar from "@/components/search-bar";
-import { ThemedText } from '@/components/themed-text';
+import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import dbApi from "@/services/dbApi";
 import followApi from "@/services/followApi";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  StyleSheet,
-  View
-} from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ExploreScreen() {
   const { user } = useAuth();
   const [users, setUsers] = useState<any[]>([]);
   const [followStatus, setFollowStatus] = useState<Record<number, boolean>>({});
-  const [loadingFollows, setLoadingFollows] = useState<Record<number, boolean>>(
-    {},
-  );
+  const [loadingFollows, setLoadingFollows] = useState<Record<number, boolean>>({});
+  const [connections, setConnections] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'users' | 'content'>('users');
+  const [activeTab, setActiveTab] = useState<"users" | "content">("users");
 
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
@@ -46,6 +41,10 @@ export default function ExploreScreen() {
           const userIds = usersList.map((u: any) => u.id);
           const statuses = await followApi.getFollowStatusBatch(userIds);
           setFollowStatus(statuses);
+
+          // Fetch connections between users
+          const graphConnections = await followApi.getGraphConnections(userIds);
+          setConnections(graphConnections);
         }
       } catch (error) {
         console.error("Error fetching users:", error);
@@ -70,8 +69,8 @@ export default function ExploreScreen() {
 
   const handleToggleFollow = useCallback(
     async (userId: number) => {
-      // Prevent multiple taps while request is in flight? 
-      // With optimistic updates, we might want to allow it, but for now let's keep the guard 
+      // Prevent multiple taps while request is in flight?
+      // With optimistic updates, we might want to allow it, but for now let's keep the guard
       // or we can remove the loading check since we update state immediately.
       // But keeping it prevents spamming the API.
       if (loadingFollows[userId]) return;
@@ -85,7 +84,10 @@ export default function ExploreScreen() {
 
       try {
         // 2. Make API call
-        const confirmedStatus = await followApi.toggleFollow(userId, currentStatus);
+        const confirmedStatus = await followApi.toggleFollow(
+          userId,
+          currentStatus,
+        );
 
         // 3. Confirm with server response (should match optimistic)
         if (confirmedStatus !== optimisticStatus) {
@@ -103,60 +105,100 @@ export default function ExploreScreen() {
   );
 
   return (
-    <View
-      style={[
-        styles.container,
-        { paddingTop: insets.top },
-        { backgroundColor: colors.background },
-      ]}
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <ThemedText type="title">
-          Explore
-        </ThemedText>
-      </View>
-
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <SearchBar
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder="Search by name or username..."
-        />
-      </View>
-
-      <View style={styles.tabContainer}>
-        <FilterBubble
-          filterName="Users"
-          activeFilter={activeTab === 'users' ? 'Users' : 'Content'}
-          setActiveFilter={(filter) => setActiveTab(filter === 'Users' ? 'users' : 'content')}
-        />
-        <FilterBubble
-          filterName="Content"
-          activeFilter={activeTab === 'users' ? 'Users' : 'Content'}
-          setActiveFilter={(filter) => setActiveTab(filter === 'Users' ? 'users' : 'content')}
-        />
-      </View>
-
-      {/* Content View */}
-      {activeTab === 'users' ? (
-        loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.tint} />
-          </View>
-        ) : (
-          <View style={styles.graphContainer}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Graph Layer - lowest z-index, fills entire screen */}
+      {activeTab === "users" && (
+        <View style={styles.graphLayer}>
+          {!loading && (
             <GraphView
               users={filteredUsers}
               currentUser={user}
               followStatus={followStatus}
               onToggleFollow={handleToggleFollow}
+              connections={connections}
+            />
+          )}
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.tint} />
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Header Overlay - positioned on top, only covers header area */}
+      <View
+        style={[
+          styles.headerOverlay,
+          { paddingTop: insets.top },
+        ]}
+        pointerEvents="box-none"
+      >
+        <View pointerEvents="auto">
+          <View style={styles.header}>
+            <ThemedText type="title">Explore</ThemedText>
+          </View>
+
+          <View style={styles.searchContainer}>
+            <SearchBar
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search by name or username..."
             />
           </View>
-        )
-      ) : (
-        <ExploreContent />
+
+          <View style={styles.tabContainer}>
+            <FilterBubble
+              filterName="Users"
+              activeFilter={activeTab === "users" ? "Users" : "Content"}
+              setActiveFilter={(filter) =>
+                setActiveTab(filter === "Users" ? "users" : "content")
+              }
+            />
+            <FilterBubble
+              filterName="Content"
+              activeFilter={activeTab === "users" ? "Users" : "Content"}
+              setActiveFilter={(filter) =>
+                setActiveTab(filter === "Users" ? "users" : "content")
+              }
+            />
+          </View>
+        </View>
+      </View>
+
+      {/* Content tab - replaces graph when active */}
+      {activeTab === "content" && (
+        <View style={[styles.contentContainer, { paddingTop: insets.top }]}>
+          <View style={styles.header}>
+            <ThemedText type="title">Explore</ThemedText>
+          </View>
+
+          <View style={styles.searchContainer}>
+            <SearchBar
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search by name or username..."
+            />
+          </View>
+
+          <View style={styles.tabContainer}>
+            <FilterBubble
+              filterName="Users"
+              activeFilter={activeTab === "users" ? "Users" : "Content"}
+              setActiveFilter={(filter) =>
+                setActiveTab(filter === "Users" ? "users" : "content")
+              }
+            />
+            <FilterBubble
+              filterName="Content"
+              activeFilter={activeTab === "users" ? "Users" : "Content"}
+              setActiveFilter={(filter) =>
+                setActiveTab(filter === "Users" ? "users" : "content")
+              }
+            />
+          </View>
+          <ExploreContent />
+        </View>
       )}
     </View>
   );
@@ -166,6 +208,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  graphLayer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 0,
+  },
+  headerOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
   header: {
     paddingHorizontal: 16,
     paddingBottom: 16,
@@ -174,22 +227,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 16,
   },
-
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  graphContainer: {
-    flex: 1,
-    marginTop: -128,
   },
   tabContainer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: 8,
-    zIndex: 10,
     paddingVertical: 8,
+  },
+  contentContainer: {
+    flex: 1,
   },
 });

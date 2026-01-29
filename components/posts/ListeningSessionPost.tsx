@@ -93,7 +93,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 10,
     padding: 12,
-    marginBottom: 12,
   },
   sessionIcon: {
     width: 44,

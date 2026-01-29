@@ -1,5 +1,6 @@
 import Feed from "@/components/Feed";
 import LiveListeners from '@/components/live-listeners';
+import NotificationBell from "@/components/NotificationBell";
 import SotdSuggestionPopup from "@/components/sotd-suggestion-popup";
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
@@ -7,13 +8,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "@/contexts/LocationContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import useUserContent from "@/hooks/useUserContent";
-import { MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import MapView from "react-native-maps";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Main exported screen component for the Home / Feed tab.
 // Responsibilities:
@@ -28,6 +28,7 @@ export default function HomeScreen() {
   const { location } = useLocation();
   const { sotd, fetchSotd, loading } = useUserContent();
   const [showSotdPopup, setShowSotdPopup] = useState(false);
+  const insets = useSafeAreaInsets();
 
   // Check for SOTD on mount
   useEffect(() => {
@@ -46,35 +47,30 @@ export default function HomeScreen() {
   }, [loading.sotd, sotd]);
 
   // Feed is rendered by the `Feed` component; item rendering lives in `FeedItem`.
-
   const renderHeader = () => (
     <>
       {/* Hero */}
       <View style={styles.headerWrapper}>
-        <Pressable
-          style={styles.notificationButton}
-          onPress={() => router.push("/notifications")}
-        >
-          <MaterialIcons
-            name="notifications-none"
-            size={24}
-            color={colors.text}
-          />
-        </Pressable>
         {/* Hero Header */}
         <View style={styles.headerContainer}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <ThemedText type='subtitle'>
-              petal.
+          <View style={{ flexDirection: "column", alignItems: "flex-start" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <ThemedText type='subtitle'>
+                petal.
+              </ThemedText>
+              <Image
+                source={!isDark ? require("../../assets/images/black-icon.svg") : require("../../assets/images/white-icon.svg")}
+                style={styles.headerImage}
+              />
+            </View>
+            <ThemedText>
+              Welcome {user?.displayName}
             </ThemedText>
-            <Image
-              source={!isDark ? require("../../assets/images/black-icon.svg") : require("../../assets/images/white-icon.svg")}
-              style={styles.headerImage}
-            />
           </View>
-          <ThemedText>
-            Welcome {user?.displayName}
-          </ThemedText>
+          <NotificationBell
+            count={1}
+            onPress={() => router.push("/notifications")}
+          />
         </View>
 
         <View style={styles.headerContentContainer}>
@@ -136,15 +132,8 @@ export default function HomeScreen() {
   // renderEmpty: shown when the feed has no items — encourages discovery by following users.
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={colors.gradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.containerGradient}
-      >
-        <Feed ListHeaderComponent={renderHeader()} />
-      </LinearGradient>
+    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+      <Feed ListHeaderComponent={renderHeader()} />
 
       <SotdSuggestionPopup
         visible={showSotdPopup}
@@ -168,16 +157,11 @@ const styles = StyleSheet.create({
     width: "100%",
     gap: 12,
   },
-  notificationButton: {
-    position: "absolute",
-    top: 4,
-    right: 0,
-    zIndex: 1,
-  },
   headerContainer: {
     width: "100%",
-    flexDirection: "column",
-    paddingTop: 32,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   headerImage: {
     width: 24,
@@ -192,6 +176,14 @@ const styles = StyleSheet.create({
     height: 240,
     width: "100%",
     borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   activeHeaderText: {
     fontSize: 16,

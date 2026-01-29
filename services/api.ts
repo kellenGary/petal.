@@ -92,7 +92,8 @@ class ApiService {
       if (this.onUnauthorized) {
         this.onUnauthorized();
       }
-      throw new Error("Session expired");
+      // Don't throw here, let the caller handle the 401 response if needed,
+      // or just rely on the global handler to redirect the user.
     }
 
     return response;

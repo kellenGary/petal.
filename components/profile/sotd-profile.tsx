@@ -4,7 +4,16 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSequence,
+  withTiming
+} from "react-native-reanimated";
 
 interface Track {
   id: string;
@@ -30,21 +39,37 @@ export default function SOTDProfile({
   const isDark = colorScheme === "dark";
   const colors = Colors[isDark ? "dark" : "light"];
 
+  const translateY = useSharedValue(0);
+
+  useEffect(() => {
+    if (track) {
+      translateY.value = withSequence(
+        withTiming(-24, { duration: 600, easing: Easing.out(Easing.exp) }),
+        withDelay(500, withTiming(0, { duration: 600, easing: Easing.inOut(Easing.cubic) }))
+      );
+    }
+  }, [track]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+
   const handlePress = () => {
-    if (isOwnProfile) {
+    if (track) {
+      router.push(`/song/${track.id}`);
+    } else if (isOwnProfile) {
       router.push("/sotd");
     }
   };
 
   const content = track ? (
-    <View
+    <Animated.View
       style={[
         styles.container,
         {
-          backgroundColor: isDark
-            ? "rgba(255,255,255,0.1)"
-            : "rgba(0,0,0,0.05)",
+          backgroundColor: colors.card,
         },
+        animatedStyle,
       ]}
     >
       <Image
@@ -64,11 +89,11 @@ export default function SOTDProfile({
       </View>
       <MaterialIcons
         name="music-note"
-        size={14}
+        size={24}
         color={colors.primary}
         style={styles.icon}
       />
-    </View>
+    </Animated.View>
   ) : isOwnProfile ? (
     <View
       style={[
@@ -86,7 +111,7 @@ export default function SOTDProfile({
 
   if (!content) return null;
 
-  if (isOwnProfile) {
+  if (track || isOwnProfile) {
     return <Pressable onPress={handlePress}>{content}</Pressable>;
   }
 
@@ -97,15 +122,16 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 6,
+    paddingVertical: 2,
     paddingHorizontal: 10,
-    borderRadius: 20,
-    gap: 8,
-    marginBottom: 8,
+    borderRadius: 8,
+    gap: 2,
+    zIndex: 10,
+    marginBottom: -24,
   },
   albumImage: {
-    width: 28,
-    height: 28,
+    width: 32,
+    height: 32,
     borderRadius: 4,
   },
   textContainer: {
