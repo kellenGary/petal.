@@ -107,12 +107,10 @@ public class PlaylistSyncService : IPlaylistSyncService
                 var existingPlaylist = await _context.Playlists
                     .FirstOrDefaultAsync(p => p.SpotifyId == spotifyId);
 
-                Playlist playlist;
-                bool isNew = false;
+                Playlist? playlist;
 
                 if (existingPlaylist == null)
                 {
-                    isNew = true;
                     // Create new playlist
                     playlist = new Playlist
                     {
@@ -151,7 +149,6 @@ public class PlaylistSyncService : IPlaylistSyncService
                             _logger.LogError(ex, "[PlaylistSync] Failed to create or fetch playlist: {SpotifyId}", spotifyId);
                             continue;
                         }
-                        isNew = false;
                         _logger.LogDebug("[PlaylistSync] Playlist already exists (race condition): {SpotifyId}", spotifyId);
                     }
                 }

@@ -143,15 +143,13 @@ using (var scope = app.Services.CreateScope())
         var scriptPath = Path.Combine(contentRoot, "scripts", "add_caching_columns.sql");
         if (File.Exists(scriptPath))
         {
-            var sql = File.ReadAllText(scriptPath);
-            // Check if column exists first to avoid error (primitive check)
-            // Or just wrap in try-catch as "duplicate column" error is harmless for us here
-            try 
+            var existingCols = db.Database.SqlQueryRaw<string>("SELECT name FROM pragma_table_info('Users')").ToList();
+            if (!existingCols.Contains("TopArtistsJson"))
             {
-               db.Database.ExecuteSqlRaw(sql);
-               Console.WriteLine("Applied caching columns migration.");
+                var sql = File.ReadAllText(scriptPath);
+                db.Database.ExecuteSqlRaw(sql);
+                Console.WriteLine("Applied caching columns migration.");
             }
-            catch { /* Ignore if already exists */ }
         }
     }
     catch (Exception ex)

@@ -29,9 +29,12 @@ export interface AuthResponse {
 class ApiService {
   private token: string | null = null;
   private onUnauthorized?: () => void;
+  private isHandlingUnauthorized = false;
 
   setAuthToken(token: string | null) {
     this.token = token;
+    // Reset the unauthorized handling flag when a new token is set
+    this.isHandlingUnauthorized = false;
   }
 
   setUnauthorizedHandler(handler: () => void) {
@@ -75,7 +78,26 @@ class ApiService {
     options: RequestInit = {},
   ): Promise<Response> {
     if (!this.token) {
+      // If we are already handling an unauthorized state, don't throw an error that might clutter logs
+      // just return a dummy response or throw a specific error that can be ignored
+      if (this.isHandlingUnauthorized) {
+        return new Response(
+          JSON.stringify({ error: "Authentication expired" }),
+          {
+            status: 401,
+            statusText: "Unauthorized",
+          },
+        ) as unknown as Response;
+      }
       throw new Error("Not authenticated");
+    }
+
+    // If we're already handling a 401, don't make more requests
+    if (this.isHandlingUnauthorized) {
+      return new Response(JSON.stringify({ error: "Authentication expired" }), {
+        status: 401,
+        statusText: "Unauthorized",
+      }) as unknown as Response;
     }
 
     const response = await fetch(`${API_URL}${endpoint}`, {
@@ -87,13 +109,14 @@ class ApiService {
       },
     });
 
-    // If unauthorized, clear token and throw
+    // If unauthorized, clear token and trigger handler ONLY ONCE
     if (response.status === 401) {
-      if (this.onUnauthorized) {
-        this.onUnauthorized();
+      if (!this.isHandlingUnauthorized) {
+        this.isHandlingUnauthorized = true;
+        if (this.onUnauthorized) {
+          this.onUnauthorized();
+        }
       }
-      // Don't throw here, let the caller handle the 401 response if needed,
-      // or just rely on the global handler to redirect the user.
     }
 
     return response;

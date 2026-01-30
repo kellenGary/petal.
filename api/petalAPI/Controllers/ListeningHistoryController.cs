@@ -97,6 +97,7 @@ public class ListeningHistoryController : ControllerBase
             }
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
+            if (accessToken == null) return Unauthorized(new { error = "Spotify token expired" });
 
             var tracksAdded = await _listeningHistoryService.SyncRecentlyPlayedAsync(
                 userId, 
@@ -166,6 +167,7 @@ public class ListeningHistoryController : ControllerBase
             }
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
+            if (accessToken == null) return Unauthorized(new { error = "Spotify token expired" });
 
             var result = await _listeningHistoryService.AddCurrentlyPlayingAsync(
                 userId,

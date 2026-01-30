@@ -21,7 +21,7 @@ public class SpotifyAuthService : ISpotifyAuthService
         _logger = logger;
     }
 
-    public async Task<(string AccessToken, string RefreshToken, int ExpiresIn)> ExchangeCodeForTokenAsync(string code, string redirectUri)
+    public async Task<(string AccessToken, string RefreshToken, int ExpiresIn)> ExchangeCodeForTokenAsync(string code, string? redirectUri)
     {
         if (string.IsNullOrEmpty(code))
         {

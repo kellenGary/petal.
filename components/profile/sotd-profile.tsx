@@ -68,6 +68,7 @@ export default function SOTDProfile({
         styles.container,
         {
           backgroundColor: colors.card,
+          marginBottom: -24,
         },
         animatedStyle,
       ]}
@@ -127,7 +128,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 2,
     zIndex: 10,
-    marginBottom: -24,
   },
   albumImage: {
     width: 32,

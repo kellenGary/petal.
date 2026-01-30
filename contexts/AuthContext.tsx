@@ -37,17 +37,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [jwtToken, setJwtToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const hasSyncedPlaylists = useRef(false);
+  const isSigningOut = useRef(false);
 
   useEffect(() => {
     // Load token and user from secure storage on mount
     loadAuthData();
     // Register unauthorized handler to sign out on 401s
     api.setUnauthorizedHandler(() => {
-      // Best effort sign-out; ignore errors
+      // Best effort sign-out
+      console.log("[AuthContext] Unauthorized handler triggered");
       signOut();
     });
   }, []);
+
+  const hasSyncedPlaylists = useRef(false);
 
   // Sync Spotify playlists when user is authenticated
   useEffect(() => {
@@ -97,7 +100,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signIn(token: string, userData: User) {
     console.log("[AuthContext] Signing in user:", userData.id);
     try {
-      // Reset sync flag so playlists sync on every login
+      // Reset flags
+      isSigningOut.current = false;
       hasSyncedPlaylists.current = false;
 
       await SecureStore.setItemAsync("jwt_token", token);
@@ -113,7 +117,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signOut() {
+    // Prevent multiple sign-outs
+    if (isSigningOut.current) {
+      console.log("[AuthContext] Already signing out, ignoring duplicate call");
+      return;
+    }
+
+    isSigningOut.current = true;
     console.log("[AuthContext] Signing out");
+
     try {
       await SecureStore.deleteItemAsync("jwt_token");
       await SecureStore.deleteItemAsync("user");
@@ -123,6 +135,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
     } catch (error) {
       console.error("Failed to delete auth data:", error);
+      // Even if secure store fails, we should clear the state
+      setJwtToken(null);
+      api.setAuthToken(null);
+      setUser(null);
+    } finally {
+      // We leave isSigningOut as true since we are now signed out.
+      // It will be reset on the next signIn.
     }
   }
 

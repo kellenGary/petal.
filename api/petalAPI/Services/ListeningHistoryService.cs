@@ -190,7 +190,7 @@ public class ListeningHistoryService : IListeningHistoryService
             var existingTrack = await _context.Tracks
                 .FirstOrDefaultAsync(t => t.SpotifyId == spotifyTrackId);
 
-            Track dbTrack;
+            Track? dbTrack;
             if (existingTrack != null)
             {
                 dbTrack = existingTrack;
@@ -469,7 +469,7 @@ public class ListeningHistoryService : IListeningHistoryService
             var existingTrack = await _context.Tracks
                 .FirstOrDefaultAsync(t => t.SpotifyId == spotifyId);
 
-            Track dbTrack;
+            Track? dbTrack;
             if (existingTrack == null)
             {
                 // Process album

@@ -53,6 +53,7 @@ public class SpotifyController : ControllerBase
             // Ideally we get a valid one. If it expires during sync, the sync service might fail.
             // But usually these are valid for an hour.
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
+            if (accessToken == null) return Unauthorized(new { error = "Spotify token expired" });
             
             // Offload to background
             _ = Task.Run(async () =>
@@ -102,6 +103,7 @@ public class SpotifyController : ControllerBase
             }
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
+            if (accessToken == null) return Unauthorized(new { error = "Spotify token expired" });
             
             // Offload to background
             _ = Task.Run(async () =>
@@ -148,6 +150,7 @@ public class SpotifyController : ControllerBase
             }
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
+            if (accessToken == null) return Unauthorized(new { error = "Spotify token expired" });
 
             var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization = 
@@ -197,6 +200,7 @@ public class SpotifyController : ControllerBase
             }
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
+            if (accessToken == null) return Unauthorized(new { error = "Spotify token expired" });
 
             var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization = 
@@ -245,6 +249,7 @@ public class SpotifyController : ControllerBase
             }
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
+            if (accessToken == null) return Unauthorized(new { error = "Spotify token expired" });
 
             var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization = 
@@ -293,6 +298,7 @@ public class SpotifyController : ControllerBase
             }
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
+            if (accessToken == null) return Unauthorized(new { error = "Spotify token expired" });
 
             var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization = 
@@ -340,6 +346,7 @@ public class SpotifyController : ControllerBase
             }
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
+            if (accessToken == null) return Unauthorized(new { error = "Spotify token expired" });
 
             var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization = 
@@ -389,6 +396,7 @@ public class SpotifyController : ControllerBase
                 return Unauthorized(new { error = "Invalid token" });
             }
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
+            if (accessToken == null) return Unauthorized(new { error = "Spotify token expired" });
             var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", accessToken);
@@ -428,6 +436,7 @@ public class SpotifyController : ControllerBase
                 return Unauthorized(new { error = "Invalid token" });
             }
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
+            if (accessToken == null) return Unauthorized(new { error = "Spotify token expired" });
             var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", accessToken);
@@ -467,6 +476,7 @@ public class SpotifyController : ControllerBase
             }
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
+            if (accessToken == null) return Unauthorized(new { error = "Spotify token expired" });
 
             var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization = 
@@ -513,6 +523,7 @@ public class SpotifyController : ControllerBase
             }
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
+            if (accessToken == null) return Unauthorized(new { error = "Spotify token expired" });
 
             var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization = 
@@ -560,6 +571,7 @@ public class SpotifyController : ControllerBase
             }
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
+            if (accessToken == null) return Unauthorized(new { error = "Spotify token expired" });
 
             var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization = 
@@ -625,6 +637,7 @@ public class SpotifyController : ControllerBase
             }
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
+            if (accessToken == null) return Unauthorized(new { error = "Spotify token expired" });
 
             var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization = 
@@ -673,6 +686,7 @@ public class SpotifyController : ControllerBase
             }
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
+            if (accessToken == null) return Unauthorized(new { error = "Spotify token expired" });
 
             var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization = 
@@ -721,6 +735,7 @@ public class SpotifyController : ControllerBase
             }
 
             var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
+            if (accessToken == null) return Unauthorized(new { error = "Spotify token expired" });
 
             var client = _httpClientFactory.CreateClient("Spotify");
             client.DefaultRequestHeaders.Authorization = 
