@@ -2,13 +2,14 @@ import ExploreContent from "@/components/explore-content";
 import FilterBubble from "@/components/filter-bubble";
 import GraphView from "@/components/graph-view";
 import SearchBar from "@/components/search-bar";
+import SearchView from "@/components/search-view";
 import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import dbApi from "@/services/dbApi";
 import followApi from "@/services/followApi";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -55,17 +56,7 @@ export default function ExploreScreen() {
     fetchData();
   }, []);
 
-  // Filter users based on search query
-  const filteredUsers = useMemo(() => {
-    if (!searchQuery.trim()) return users;
 
-    const query = searchQuery.toLowerCase();
-    return users.filter(
-      (user) =>
-        user.displayName?.toLowerCase().includes(query) ||
-        user.handle?.toLowerCase().includes(query),
-    );
-  }, [users, searchQuery]);
 
   const handleToggleFollow = useCallback(
     async (userId: number) => {
@@ -109,9 +100,9 @@ export default function ExploreScreen() {
       {/* Graph Layer - lowest z-index, fills entire screen */}
       {activeTab === "users" && (
         <View style={styles.graphLayer}>
-          {!loading && (
+          {!loading && !searchQuery && (
             <GraphView
-              users={filteredUsers}
+              users={users}
               currentUser={user}
               followStatus={followStatus}
               onToggleFollow={handleToggleFollow}
@@ -127,77 +118,71 @@ export default function ExploreScreen() {
       )}
 
       {/* Header Overlay - positioned on top, only covers header area */}
-      <View
-        style={[
-          styles.headerOverlay,
-          { paddingTop: insets.top },
-        ]}
-        pointerEvents="box-none"
-      >
-        <View pointerEvents="auto">
-          <View style={styles.header}>
-            <ThemedText type="title">Explore</ThemedText>
-          </View>
+      {!searchQuery && (
+        <View
+          style={[
+            styles.headerOverlay,
+            { paddingTop: insets.top },
+          ]}
+          pointerEvents="box-none"
+        >
+          <View pointerEvents="auto">
+            <View style={styles.header}>
+              <ThemedText type="title">Explore</ThemedText>
+            </View>
 
-          <View style={styles.searchContainer}>
-            <SearchBar
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search by name or username..."
-            />
-          </View>
+            <View style={styles.searchContainer}>
+              <SearchBar
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search by name or username..."
+              />
+            </View>
 
-          <View style={styles.tabContainer}>
-            <FilterBubble
-              filterName="Users"
-              activeFilter={activeTab === "users" ? "Users" : "Content"}
-              setActiveFilter={(filter) =>
-                setActiveTab(filter === "Users" ? "users" : "content")
-              }
-            />
-            <FilterBubble
-              filterName="Content"
-              activeFilter={activeTab === "users" ? "Users" : "Content"}
-              setActiveFilter={(filter) =>
-                setActiveTab(filter === "Users" ? "users" : "content")
-              }
-            />
+            <View style={styles.tabContainer}>
+              <FilterBubble
+                filterName="Users"
+                activeFilter={activeTab === "users" ? "Users" : "Content"}
+                setActiveFilter={(filter) =>
+                  setActiveTab(filter === "Users" ? "users" : "content")
+                }
+              />
+              <FilterBubble
+                filterName="Content"
+                activeFilter={activeTab === "users" ? "Users" : "Content"}
+                setActiveFilter={(filter) =>
+                  setActiveTab(filter === "Users" ? "users" : "content")
+                }
+              />
+            </View>
           </View>
         </View>
-      </View>
+      )}
 
-      {/* Content tab - replaces graph when active */}
-      {activeTab === "content" && (
-        <View style={[styles.contentContainer, { paddingTop: insets.top }]}>
+      {/* Content tab - replaces graph when active, but only if no search query */}
+      {!searchQuery && activeTab === "content" && (
+        <View style={[styles.contentContainer, { paddingTop: insets.top + 140 }]}>
+          <ExploreContent />
+        </View>
+      )}
+
+      {/* Search View - renders when there is a query */}
+      {!!searchQuery && (
+        <View style={[styles.searchViewLayer, { paddingTop: insets.top, backgroundColor: colors.background }]}>
           <View style={styles.header}>
-            <ThemedText type="title">Explore</ThemedText>
+            <ThemedText type="title">Search</ThemedText>
           </View>
 
           <View style={styles.searchContainer}>
             <SearchBar
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Search by name or username..."
+              placeholder="Search by name or song..."
+              autoFocus
             />
           </View>
 
-          <View style={styles.tabContainer}>
-            <FilterBubble
-              filterName="Users"
-              activeFilter={activeTab === "users" ? "Users" : "Content"}
-              setActiveFilter={(filter) =>
-                setActiveTab(filter === "Users" ? "users" : "content")
-              }
-            />
-            <FilterBubble
-              filterName="Content"
-              activeFilter={activeTab === "users" ? "Users" : "Content"}
-              setActiveFilter={(filter) =>
-                setActiveTab(filter === "Users" ? "users" : "content")
-              }
-            />
-          </View>
-          <ExploreContent />
+          <SearchView query={searchQuery} />
         </View>
       )}
     </View>
@@ -221,7 +206,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingBottom: 12,
   },
   searchContainer: {
     paddingHorizontal: 16,
@@ -241,5 +226,9 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
+  },
+  searchViewLayer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 20,
   },
 });

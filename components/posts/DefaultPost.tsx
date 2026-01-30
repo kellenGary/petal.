@@ -96,7 +96,6 @@ export default function DefaultPost({ item }: DefaultPostProps) {
 
 const styles = StyleSheet.create({
   card: {
-    marginHorizontal: 16,
     marginBottom: 12,
     borderRadius: 12,
     padding: 12,

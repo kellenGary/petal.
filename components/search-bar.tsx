@@ -8,6 +8,7 @@ interface SearchBarProps {
     onChangeText: (text: string) => void;
     placeholder?: string;
     containerStyle?: ViewStyle;
+    autoFocus?: boolean;
 }
 
 export default function SearchBar({
@@ -15,6 +16,7 @@ export default function SearchBar({
     onChangeText,
     placeholder = "Search...",
     containerStyle,
+    autoFocus = false,
 }: SearchBarProps) {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
@@ -41,6 +43,7 @@ export default function SearchBar({
                 onChangeText={onChangeText}
                 autoCapitalize="none"
                 autoCorrect={false}
+                autoFocus={autoFocus}
             />
             {value.length > 0 && (
                 <Pressable onPress={() => onChangeText("")}>

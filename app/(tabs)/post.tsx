@@ -357,7 +357,7 @@ export default function PostScreen() {
         placeholder={`Search ${activeFilter.toLowerCase()}s...`}
         containerStyle={{
           marginVertical: 12,
-          marginHorizontal: 10,
+          marginHorizontal: 16,
         }}
       />
 
@@ -390,7 +390,6 @@ export default function PostScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 8,
   },
   title: {
     fontSize: 24,

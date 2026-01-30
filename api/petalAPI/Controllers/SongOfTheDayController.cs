@@ -130,6 +130,79 @@ public class SongOfTheDayController : ControllerBase
             }
         });
     }
+
+    /// <summary>
+    /// Retrieves songs of the day from users that the current user follows.
+    /// </summary>
+    [HttpGet("following")]
+    public async Task<IActionResult> GetFollowingSotds()
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null)
+            return Unauthorized("User not authenticated");
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        
+        _logger.LogInformation("[SOTD Following] User {UserId} querying for date {Date}", userId, today);
+
+        // Get the IDs of users the current user follows
+        var followedUserIds = await _context.Follows
+            .Where(f => f.FollowerUserId == userId.Value)
+            .Select(f => f.FolloweeUserId)
+            .ToListAsync();
+        
+        _logger.LogInformation("[SOTD Following] User {UserId} follows {Count} users: [{UserIds}]", 
+            userId, followedUserIds.Count, string.Join(", ", followedUserIds));
+
+        if (!followedUserIds.Any())
+            return Ok(new List<object>());
+
+        // Debug: Check all SOTDs from followed users regardless of date
+        var allFollowedSotds = await _context.SongsOfTheDay
+            .Where(s => followedUserIds.Contains(s.UserId))
+            .Select(s => new { s.UserId, s.Date })
+            .ToListAsync();
+        
+        _logger.LogInformation("[SOTD Following] All SOTDs from followed users: {Sotds}", 
+            string.Join(", ", allFollowedSotds.Select(s => $"User {s.UserId}: {s.Date}")));
+
+        // Get today's SOTDs for followed users
+        var followingSotds = await _context.SongsOfTheDay
+            .Where(s => followedUserIds.Contains(s.UserId) && s.Date == today)
+            .Include(s => s.User)
+            .Include(s => s.Track)
+                .ThenInclude(t => t.Album)
+            .Include(s => s.Track)
+                .ThenInclude(t => t.TrackArtists)
+                    .ThenInclude(ta => ta.Artist)
+            .Select(s => new
+            {
+                user = new
+                {
+                    id = s.User.Id,
+                    displayName = s.User.DisplayName,
+                    handle = s.User.Handle,
+                    profileImageUrl = s.User.ProfileImageUrl
+                },
+                track = new
+                {
+                    id = s.Track.Id.ToString(),
+                    name = s.Track.Name,
+                    artists = s.Track.TrackArtists.Select(ta => ta.Artist.Name).ToArray(),
+                    album = new
+                    {
+                        id = s.Track.Album != null ? s.Track.Album.Id.ToString() : null,
+                        name = s.Track.Album != null ? s.Track.Album.Name : null,
+                        image_url = s.Track.Album != null ? s.Track.Album.ImageUrl : null
+                    }
+                }
+            })
+            .ToListAsync();
+
+        _logger.LogInformation("[SOTD Following] Found {Count} SOTDs for today ({Date})", followingSotds.Count, today);
+
+        return Ok(followingSotds);
+    }
 }
 
 public class SetSotdRequest

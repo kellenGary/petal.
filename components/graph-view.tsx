@@ -1,8 +1,18 @@
 import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import {
+  forceCenter,
+  forceCollide,
+  forceLink,
+  forceManyBody,
+  forceSimulation,
+  SimulationLinkDatum,
+  SimulationNodeDatum,
+} from "d3-force";
 import { Image } from "expo-image";
-import React, { useMemo, useState } from "react";
+import { useRouter } from "expo-router";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -26,11 +36,21 @@ interface GraphViewProps {
   connections: { followerId: number; followeeId: number }[];
 }
 
+interface SimNode extends SimulationNodeDatum {
+  id: number;
+  user: User;
+  isCenter: boolean;
+}
+
+interface SimLink extends SimulationLinkDatum<SimNode> {
+  isDirect: boolean; // true = from current user (solid), false = between others (dotted)
+}
+
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 const NODE_SIZE = 60;
-const SPACING = 120; // Distance between nodes in spiral
-const GRAPH_SIZE = 4000; // Large canvas for connections
+const NODE_RADIUS = NODE_SIZE / 2 + 20; // Radius for collision detection with padding
+const GRAPH_SIZE = 4000;
 
 export default function GraphView({
   users,
@@ -39,11 +59,15 @@ export default function GraphView({
   onToggleFollow,
   connections = [],
 }: GraphViewProps) {
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const colors = Colors[isDark ? "dark" : "light"];
 
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const [nodePositions, setNodePositions] = useState<Map<number, { x: number; y: number }>>(new Map());
+  const [isSimulating, setIsSimulating] = useState(true);
+  const simulationRef = useRef<any>(null);
 
   // --- Animation State ---
   const scale = useSharedValue(1);
@@ -58,36 +82,135 @@ export default function GraphView({
     setContainerSize({ width, height });
   };
 
-  // --- Calculate Node Positions (Spiral) ---
-  const nodePositions = useMemo(() => {
-    // Current user is always at (0,0)
-    // Other users spiral out
-    const otherUsers = users.filter(u => !currentUser || u.id !== currentUser.id);
-    return otherUsers.map((user, index) => {
-      // Golden angle in radians
-      const angle = index * 2.39996;
-      // Radius depends on index (sqrt distributes area evenly)
-      const radius = SPACING * Math.sqrt(index + 1);
+  // --- Build nodes and links for simulation ---
+  const { nodes, links } = useMemo(() => {
+    const nodeList: SimNode[] = [];
+    const linkList: SimLink[] = [];
+    const nodeIdSet = new Set<number>();
 
-      return {
-        user,
-        x: radius * Math.cos(angle),
-        y: radius * Math.sin(angle),
-      };
-    });
-  }, [users]);
-
-  // --- Node Position Lookup ---
-  const nodeMap = useMemo(() => {
-    const map = new Map<number, { x: number; y: number }>();
+    // Add current user as center node (fixed position)
     if (currentUser) {
-      map.set(currentUser.id, { x: 0, y: 0 });
+      nodeList.push({
+        id: currentUser.id,
+        user: currentUser,
+        isCenter: true,
+        fx: 0, // Fixed x position
+        fy: 0, // Fixed y position
+        x: 0,
+        y: 0,
+      });
+      nodeIdSet.add(currentUser.id);
     }
-    nodePositions.forEach((node) => {
-      map.set(node.user.id, { x: node.x, y: node.y });
+
+    // Add other users
+    users.forEach((user, index) => {
+      if (currentUser && user.id === currentUser.id) return;
+      if (nodeIdSet.has(user.id)) return;
+
+      // Initial random positions in a circle around center
+      const angle = (index / users.length) * Math.PI * 2;
+      const radius = 150 + Math.random() * 100;
+
+      nodeList.push({
+        id: user.id,
+        user,
+        isCenter: false,
+        x: Math.cos(angle) * radius,
+        y: Math.sin(angle) * radius,
+      });
+      nodeIdSet.add(user.id);
     });
-    return map;
-  }, [currentUser, nodePositions]);
+
+    // Add links for users that current user follows (direct connections)
+    if (currentUser) {
+      Object.entries(followStatus).forEach(([userId, isFollowing]) => {
+        if (isFollowing && nodeIdSet.has(Number(userId))) {
+          linkList.push({
+            source: currentUser.id,
+            target: Number(userId),
+            isDirect: true,
+          });
+        }
+      });
+    }
+
+    // Add links for connections between other users (friends of friends)
+    connections.forEach((conn) => {
+      // Skip if either node doesn't exist
+      if (!nodeIdSet.has(conn.followerId) || !nodeIdSet.has(conn.followeeId)) return;
+      // Skip connections from current user (already handled above)
+      if (currentUser && conn.followerId === currentUser.id) return;
+
+      linkList.push({
+        source: conn.followerId,
+        target: conn.followeeId,
+        isDirect: false,
+      });
+    });
+
+    return { nodes: nodeList, links: linkList };
+  }, [users, currentUser, followStatus, connections]);
+
+  // --- Run force simulation ---
+  useEffect(() => {
+    if (nodes.length === 0) return;
+
+    // Stop any existing simulation
+    if (simulationRef.current) {
+      simulationRef.current.stop();
+    }
+
+    // Create new simulation
+    const simulation = forceSimulation(nodes)
+      // Links push connected nodes apart (bigger gap)
+      .force(
+        "link",
+        forceLink<SimNode, SimLink>(links)
+          .id((d) => d.id)
+          .distance(300) // Larger distance between linked nodes
+          .strength(0.3) // Weaker attraction so they stay apart
+      )
+      // Nodes repel each other less (closer gap for disconnected)
+      .force(
+        "charge",
+        forceManyBody()
+          .strength(-150) // Less repulsion = nodes stay closer
+          .distanceMax(250) // Shorter range for repulsion
+      )
+      // Prevent node overlapping with collision detection
+      .force(
+        "collide",
+        forceCollide<SimNode>()
+          .radius(NODE_RADIUS)
+          .strength(1)
+          .iterations(2)
+      )
+      // Center the graph
+      .force("center", forceCenter(0, 0).strength(0.05))
+      // Set simulation parameters
+      .alpha(1)
+      .alphaDecay(0.02)
+      .velocityDecay(0.4);
+
+    simulationRef.current = simulation;
+
+    // Update positions on each tick
+    simulation.on("tick", () => {
+      const newPositions = new Map<number, { x: number; y: number }>();
+      nodes.forEach((node) => {
+        newPositions.set(node.id, { x: node.x || 0, y: node.y || 0 });
+      });
+      setNodePositions(new Map(newPositions));
+    });
+
+    simulation.on("end", () => {
+      setIsSimulating(false);
+    });
+
+    return () => {
+      simulation.stop();
+    };
+  }, [nodes, links]);
 
   // --- Gestures ---
   const panGesture = Gesture.Pan()
@@ -95,7 +218,7 @@ export default function GraphView({
       translateX.value = savedTranslateX.value + e.translationX;
       translateY.value = savedTranslateY.value + e.translationY;
     })
-    .onEnd((e) => {
+    .onEnd(() => {
       savedTranslateX.value = translateX.value;
       savedTranslateY.value = translateY.value;
     });
@@ -140,7 +263,15 @@ export default function GraphView({
         ]}
       >
         <Pressable
-          onPress={() => !isCenter && onToggleFollow(user.id)}
+          onPress={() => {
+            if (isCenter) {
+              router.push("/profile");
+            } else {
+              router.push(`/profile/${user.id}`);
+            }
+          }}
+          onLongPress={() => !isCenter && onToggleFollow(user.id)}
+          delayLongPress={300}
           style={[
             styles.avatarContainer,
             {
@@ -202,9 +333,14 @@ export default function GraphView({
     return <View style={styles.container} onLayout={onLayout} />;
   }
 
-  // Center the graph initially by offsetting half the container size
+  // Center offset for rendering
   const centerOffsetX = containerSize.width / 2;
   const centerOffsetY = containerSize.height / 2;
+
+  // Build position lookup for links
+  const getNodePosition = (nodeId: number): { x: number; y: number } | null => {
+    return nodePositions.get(nodeId) || null;
+  };
 
   return (
     <View style={styles.container} onLayout={onLayout}>
@@ -226,68 +362,58 @@ export default function GraphView({
               width={GRAPH_SIZE}
               viewBox={`${-GRAPH_SIZE / 2} ${-GRAPH_SIZE / 2} ${GRAPH_SIZE} ${GRAPH_SIZE}`}
             >
-              {/* 1. Solid lines from Me to Followed Users */}
-              {nodePositions.map((node) => {
-                const isFollowing = followStatus[node.user.id];
-                if (!isFollowing) return null; // Only draw solid lines for actual follows
+              {/* Draw all links */}
+              {links.map((link, idx) => {
+                const sourceId = typeof link.source === "object" ? link.source.id : link.source;
+                const targetId = typeof link.target === "object" ? link.target.id : link.target;
 
-                return (
-                  <Line
-                    key={`me-${node.user.id}`}
-                    x1={0}
-                    y1={0}
-                    x2={node.x}
-                    y2={node.y}
-                    stroke={colors.primary}
-                    strokeWidth={2}
-                    opacity={0.8}
-                  />
+                const sourcePos = getNodePosition(Number(sourceId));
+                const targetPos = getNodePosition(Number(targetId));
+
+                if (!sourcePos || !targetPos) return null;
+
+                // Check if this is a friend-of-friend connection where the user follows either end
+                const isFollowedConnection = !link.isDirect && (
+                  followStatus[Number(sourceId)] || followStatus[Number(targetId)]
                 );
-              })}
 
-              {/* 2. Dotted lines for connections bewteen other users */}
-              {connections.map((conn, idx) => {
-                // Skip connections involving current user (handled above or ignored)
-                if (currentUser && conn.followerId === currentUser.id) return null;
-
-                const startNode = nodeMap.get(conn.followerId);
-                const endNode = nodeMap.get(conn.followeeId);
-
-                if (!startNode || !endNode) return null;
+                // Determine line style
+                const isSolid = link.isDirect || isFollowedConnection;
 
                 return (
                   <Line
-                    key={`conn-${idx}`}
-                    x1={startNode.x}
-                    y1={startNode.y}
-                    x2={endNode.x}
-                    y2={endNode.y}
-                    stroke={colors.text}
-                    strokeWidth={1}
-                    strokeDasharray="5, 5"
-                    opacity={0.4}
+                    key={`link-${idx}`}
+                    x1={sourcePos.x}
+                    y1={sourcePos.y}
+                    x2={targetPos.x}
+                    y2={targetPos.y}
+                    stroke={link.isDirect ? colors.primary : "#FFFFFF"}
+                    strokeWidth={isSolid ? 0.5 : 1}
+                    strokeDasharray={isSolid ? undefined : "5, 5"}
+                    opacity={link.isDirect ? 0.8 : (isFollowedConnection ? 0.6 : 0.4)}
                   />
                 );
               })}
             </Svg>
           </View>
 
-          {/* Nodes Layer - positioned relative to center */}
-          {currentUser &&
-            renderUserNode(currentUser, centerOffsetX, centerOffsetY, true)}
-          {nodePositions.map((node) =>
-            renderUserNode(
+          {/* Nodes Layer */}
+          {nodes.map((node) => {
+            const pos = nodePositions.get(node.id);
+            if (!pos) return null;
+
+            return renderUserNode(
               node.user,
-              centerOffsetX + node.x,
-              centerOffsetY + node.y,
-            ),
-          )}
+              centerOffsetX + pos.x,
+              centerOffsetY + pos.y,
+              node.isCenter,
+            );
+          })}
         </Animated.View>
       </GestureDetector>
     </View>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {
@@ -305,7 +431,7 @@ const styles = StyleSheet.create({
   nodeContainer: {
     position: "absolute",
     width: NODE_SIZE,
-    height: NODE_SIZE + 40, // Extra space for text
+    height: NODE_SIZE + 40,
     alignItems: "center",
     justifyContent: "flex-start",
   },

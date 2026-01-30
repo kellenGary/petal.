@@ -1,6 +1,6 @@
 import Feed from "@/components/Feed";
-import LiveListeners from '@/components/live-listeners';
-import NotificationBell from "@/components/NotificationBell";
+import FollowingSotds from "@/components/following-sotds";
+import Hero from "@/components/hero";
 import SotdSuggestionPopup from "@/components/sotd-suggestion-popup";
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from "@/constants/theme";
@@ -8,7 +8,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "@/contexts/LocationContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import useUserContent from "@/hooks/useUserContent";
-import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -51,31 +50,13 @@ export default function HomeScreen() {
     <>
       {/* Hero */}
       <View style={styles.headerWrapper}>
-        {/* Hero Header */}
-        <View style={styles.headerContainer}>
-          <View style={{ flexDirection: "column", alignItems: "flex-start" }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <ThemedText type='subtitle'>
-                petal.
-              </ThemedText>
-              <Image
-                source={!isDark ? require("../../assets/images/black-icon.svg") : require("../../assets/images/white-icon.svg")}
-                style={styles.headerImage}
-              />
-            </View>
-            <ThemedText>
-              Welcome {user?.displayName}
-            </ThemedText>
-          </View>
-          <NotificationBell
-            count={1}
-            onPress={() => router.push("/notifications")}
-          />
-        </View>
-
+        <Hero/>
         <View style={styles.headerContentContainer}>
           {/* Live Listeners Section */}
-          <LiveListeners />
+          {/* <LiveListeners /> */}
+
+          {/* Following Songs of the Day Section */}
+          <FollowingSotds />
 
           {/* Map Section */}
           <Pressable

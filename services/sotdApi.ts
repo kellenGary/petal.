@@ -50,6 +50,40 @@ class SotdApiService {
 
     return await response.json();
   }
+
+  /**
+   * Get songs of the day from users that the current user follows
+   */
+  async getFollowingSotds(): Promise<FollowingSotdItem[]> {
+    const response = await api.makeAuthenticatedRequest(
+      "/api/songoftheday/following",
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to get following SOTDs: ${response.statusText}`);
+    }
+
+    return await response.json();
+  }
+}
+
+export interface FollowingSotdItem {
+  user: {
+    id: number;
+    displayName: string;
+    handle: string;
+    profileImageUrl: string | null;
+  };
+  track: {
+    id: string;
+    name: string;
+    artists: string[];
+    album: {
+      id: string;
+      name: string;
+      image_url: string;
+    };
+  };
 }
 
 export default new SotdApiService();

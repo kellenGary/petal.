@@ -3,14 +3,16 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import feedApi, { FeedPost, ListeningSessionTrack } from "@/services/feedApi";
 import { Image } from "expo-image";
+import { router } from 'expo-router';
 import React from "react";
-import { Dimensions, StyleSheet, View } from "react-native";
+import { Dimensions, Pressable, StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Extrapolation,
   interpolate,
   SharedValue,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withSpring
 } from "react-native-reanimated";
@@ -141,14 +143,18 @@ function StackedCard({
   scrollOffset,
   colors,
 }: StackedCardProps) {
+  const centerOffset = useDerivedValue(() => {
+    const basePosition = index * CARD_OVERLAP;
+    const relativePosition = basePosition - scrollOffset.value;
+    return relativePosition / CARD_OVERLAP;
+  });
+
   const animatedStyle = useAnimatedStyle(() => {
     // Calculate the position based on scroll offset
     const basePosition = index * CARD_OVERLAP;
     const relativePosition = basePosition - scrollOffset.value;
 
-    // Calculate how "centered" this card is (0 = perfectly centered)
-    const centerOffset = relativePosition / CARD_OVERLAP;
-    const absoluteCenterOffset = Math.abs(centerOffset);
+    const absoluteCenterOffset = Math.abs(centerOffset.value);
 
     // Width: focused card is wider, unfocused cards shrink
     const minWidth = 20; // Unfocused width 20px
@@ -169,7 +175,7 @@ function StackedCard({
       Neighbors are stacked tightly (minWidth spacing) instead of CARD_OVERLAP spacing.
     */
     const translateX = interpolate(
-      centerOffset,
+      centerOffset.value,
       [-2, -1, 0, 1, 2],
       [
         -minWidth * 2, // -40
@@ -193,9 +199,16 @@ function StackedCard({
     };
   });
 
+  const handlePress = (trackId: number) => {
+    // Check if card is roughly centered (allow small tolerance)
+    if (Math.abs(centerOffset.value) < 0.1) {
+      router.push(`/song/${trackId}`);
+    }
+  };
+
   return (
     <Animated.View style={[styles.stackedCard, animatedStyle]}>
-      <View style={[styles.cardInner, { backgroundColor: colors.card }]}>
+      <Pressable style={[styles.cardInner, { backgroundColor: colors.card }]} onPress={() => { handlePress(track.trackId) }}>
         {track.albumImageUrl && (
           <Image
             source={{ uri: track.albumImageUrl }}
@@ -216,7 +229,7 @@ function StackedCard({
             {track.artistNames || 'Unknown Artist'}
           </ThemedText>
         </View>
-      </View>
+      </Pressable>
     </Animated.View>
   );
 }
