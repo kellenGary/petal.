@@ -52,7 +52,7 @@ interface TrackInfo {
   artists: Artist[];
 }
 
-interface EnrichedListeningHistoryEntry {
+export interface EnrichedListeningHistoryEntry {
   id: number;
   played_at: string;
   ms_played: number;
@@ -62,7 +62,7 @@ interface EnrichedListeningHistoryEntry {
   track: TrackInfo;
 }
 
-interface EnrichedListeningHistoryResponse {
+export interface EnrichedListeningHistoryResponse {
   total: number;
   limit: number;
   offset: number;
@@ -123,6 +123,30 @@ interface GlobalLocationHistoryResponse {
   limit: number;
   offset: number;
   items: GlobalLocationHistoryEntry[];
+}
+
+export interface UniqueTrack {
+  id: number;
+  spotify_id: string;
+  name: string;
+  duration_ms: number;
+  played_at: string;
+  album?: {
+    id: number;
+    name: string;
+    imageUrl?: string;
+  };
+  artists: {
+    id: number;
+    name: string;
+  }[];
+}
+
+export interface UniqueTracksResponse {
+  total: number;
+  limit: number;
+  offset: number;
+  items: UniqueTrack[];
 }
 
 class ListeningHistoryService {
@@ -428,6 +452,39 @@ class ListeningHistoryService {
   }
 
   /**
+   * Gets unique tracks listened to by a specific user.
+   * Deduplicates by Spotify Track ID or Track ID.
+   *
+   * @param userId - The ID of the user
+   * @param limit - Number of records to return (1-1000, default 50)
+   * @param offset - Number of records to skip (default 0)
+   * @param query - Optional search query
+   */
+  async getUniqueTracks(
+    userId: number,
+    limit: number = 50,
+    offset: number = 0,
+    query?: string,
+  ): Promise<UniqueTracksResponse> {
+    const params = new URLSearchParams();
+    params.append("limit", Math.min(Math.max(limit, 1), 1000).toString());
+    params.append("offset", Math.max(offset, 0).toString());
+    if (query) {
+      params.append("query", query);
+    }
+
+    const response = await api.makeAuthenticatedRequest(
+      `/api/listeninghistory/unique/${userId}?${params.toString()}`,
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch unique tracks: ${response.statusText}`);
+    }
+
+    return await response.json();
+  }
+
+  /**
    * Gets listening history entries with location data for map display.
    * Only returns entries that have valid latitude and longitude coordinates.
    *
@@ -473,12 +530,6 @@ class ListeningHistoryService {
     const response = await api.makeAuthenticatedRequest(
       `/api/listeninghistory/all-with-location?${params.toString()}`,
     );
-
-    if (!response.ok) {
-      throw new Error(
-        `Failed to fetch all listening history with location: ${response.statusText}`,
-      );
-    }
 
     return await response.json();
   }

@@ -323,6 +323,7 @@ export default function UserProfile({ userId }: UserProfileProps) {
             profileData={profileData}
             topArtists={topArtists}
             formatNumber={formatNumber}
+            userId={effectiveUserId}
           />
         </View>
 

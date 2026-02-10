@@ -208,7 +208,11 @@ public class FollowController : ControllerBase
     /// <param name="limit">The maximum number of items to return.</param>
     /// <param name="offset">The number of items to skip.</param>
     [HttpGet("followers/{userId}")]
-    public async Task<IActionResult> GetFollowers(int userId, [FromQuery] int limit = 50, [FromQuery] int offset = 0)
+    public async Task<IActionResult> GetFollowers(
+        int userId, 
+        [FromQuery] string? query = null,
+        [FromQuery] int limit = 50, 
+        [FromQuery] int offset = 0)
     {
         var currentUserId = GetCurrentUserId();
         if (currentUserId == null)
@@ -223,14 +227,24 @@ public class FollowController : ControllerBase
             return NotFound(new { error = "User not found" });
         }
 
-        var query = _context.Follows
+        var dbQuery = _context.Follows
             .Where(f => f.FolloweeUserId == userId)
             .Include(f => f.Follower)
-            .OrderByDescending(f => f.CreatedAt);
+            .AsQueryable();
 
-        var total = await query.CountAsync();
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            var normalizedQ = query.Trim().ToLower();
+            dbQuery = dbQuery.Where(f => 
+                f.Follower.DisplayName.ToLower().Contains(normalizedQ) || 
+                (f.Follower.Handle != null && f.Follower.Handle.ToLower().Contains(normalizedQ)));
+        }
 
-        var followers = await query
+        dbQuery = dbQuery.OrderByDescending(f => f.CreatedAt);
+
+        var total = await dbQuery.CountAsync();
+
+        var followers = await dbQuery
             .Skip(offset)
             .Take(limit)
             .Select(f => new
@@ -259,7 +273,11 @@ public class FollowController : ControllerBase
     /// <param name="limit">The maximum number of items to return.</param>
     /// <param name="offset">The number of items to skip.</param>
     [HttpGet("following/{userId}")]
-    public async Task<IActionResult> GetFollowing(int userId, [FromQuery] int limit = 50, [FromQuery] int offset = 0)
+    public async Task<IActionResult> GetFollowing(
+        int userId, 
+        [FromQuery] string? query = null,
+        [FromQuery] int limit = 50, 
+        [FromQuery] int offset = 0)
     {
         var currentUserId = GetCurrentUserId();
         if (currentUserId == null)
@@ -274,14 +292,24 @@ public class FollowController : ControllerBase
             return NotFound(new { error = "User not found" });
         }
 
-        var query = _context.Follows
+        var dbQuery = _context.Follows
             .Where(f => f.FollowerUserId == userId)
             .Include(f => f.Followee)
-            .OrderByDescending(f => f.CreatedAt);
+            .AsQueryable();
 
-        var total = await query.CountAsync();
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            var normalizedQ = query.Trim().ToLower();
+            dbQuery = dbQuery.Where(f => 
+                f.Followee.DisplayName.ToLower().Contains(normalizedQ) || 
+                (f.Followee.Handle != null && f.Followee.Handle.ToLower().Contains(normalizedQ)));
+        }
 
-        var following = await query
+        dbQuery = dbQuery.OrderByDescending(f => f.CreatedAt);
+
+        var total = await dbQuery.CountAsync();
+
+        var following = await dbQuery
             .Skip(offset)
             .Take(limit)
             .Select(f => new

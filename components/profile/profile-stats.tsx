@@ -19,6 +19,7 @@ interface ProfileStatsProps {
     profileData: ProfileData | null;
     topArtists: any[];
     formatNumber: (num: number) => string;
+    userId?: number;
 }
 
 export default function ProfileStats({
@@ -26,16 +27,43 @@ export default function ProfileStats({
     profileData,
     topArtists,
     formatNumber,
+    userId,
 }: ProfileStatsProps) {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
     const colors = Colors[isDark ? "dark" : "light"];
 
+    const effectiveUserId = userId ?? profileData?.id;
+
+    const handleFollowersPress = useCallback(() => {
+        if (effectiveUserId) {
+            router.push(`/profile/followers?userId=${effectiveUserId}` as RelativePathString);
+        }
+    }, [effectiveUserId]);
+
+    const handleFollowingPress = useCallback(() => {
+        if (effectiveUserId) {
+            router.push(`/profile/following-users?userId=${effectiveUserId}` as RelativePathString);
+        }
+    }, [effectiveUserId]);
+
+    const handleUniqueSongsPress = useCallback(() => {
+        if (effectiveUserId) {
+            router.push(`/profile/unique-songs?userId=${effectiveUserId}` as RelativePathString);
+        }
+    }, [effectiveUserId]);
+
     return (
         <>
             {/* Stats Row */}
             <View style={styles.statsContainer}>
-                <Pressable style={styles.statItem}>
+                <Pressable
+                    style={({ pressed }) => [
+                        styles.statItem,
+                        { opacity: pressed ? 0.7 : 1 }
+                    ]}
+                    onPress={handleFollowersPress}
+                >
                     <ThemedText type="defaultSemiBold" style={styles.statNumber}>
                         {formatNumber(followCounts.followers)}
                     </ThemedText>
@@ -43,7 +71,13 @@ export default function ProfileStats({
                         Followers
                     </ThemedText>
                 </Pressable>
-                <Pressable style={styles.statItem}>
+                <Pressable
+                    style={({ pressed }) => [
+                        styles.statItem,
+                        { opacity: pressed ? 0.7 : 1 }
+                    ]}
+                    onPress={handleFollowingPress}
+                >
                     <ThemedText type="defaultSemiBold" style={styles.statNumber}>
                         {formatNumber(followCounts.following)}
                     </ThemedText>
@@ -51,7 +85,13 @@ export default function ProfileStats({
                         Following
                     </ThemedText>
                 </Pressable>
-                <Pressable style={styles.statItem}>
+                <Pressable
+                    style={({ pressed }) => [
+                        styles.statItem,
+                        { opacity: pressed ? 0.7 : 1 }
+                    ]}
+                    onPress={handleUniqueSongsPress}
+                >
                     <ThemedText type="defaultSemiBold" style={styles.statNumber}>
                         {formatNumber(profileData?.totalUniqueTracks || 0)}
                     </ThemedText>

@@ -300,6 +300,150 @@ public class ListeningHistoryController : ControllerBase
     }
 
     /// <summary>
+    /// Retrieves unique tracks listened to by a specific user.
+    /// Deduplicates by Spotify Track ID or Track ID.
+    /// </summary>
+    /// <param name="userId">The ID of the user to retrieve unique tracks for.</param>
+    /// <param name="query">Optional search query to filter by track or artist name.</param>
+    /// <param name="limit">The maximum number of items to return.</param>
+    /// <param name="offset">The number of items to skip.</param>
+    [HttpGet("unique/{userId}")]
+    public async Task<IActionResult> GetUniqueTracks(
+        int userId,
+        [FromQuery] string? query = null,
+        [FromQuery] int limit = 50,
+        [FromQuery] int offset = 0)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null)
+            {
+                return Unauthorized(new { error = "Invalid token" });
+            }
+
+            // Check if the target user exists
+            var targetUser = await _context.Users.FindAsync(userId);
+            if (targetUser == null)
+            {
+                return NotFound(new { error = "User not found" });
+            }
+
+            if (limit < 1 || limit > 1000) limit = 50;
+            if (offset < 0) offset = 0;
+
+            // 1. Get unique Track IDs and their last played time for the user
+            // We filter by user first
+            var userHistoryQuery = _context.ListeningHistory
+                .Where(h => h.UserId == userId);
+
+            // If there's a search query, we perform a pre-filter on tracks
+            // Note: complex search + group by is hard for EF.
+            // Best approach: Get potential Track IDs matching search from Tracks table first, if query exists.
+            List<int>? matchingTrackIds = null;
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                var normalizedQuery = query.Trim().ToLower();
+                matchingTrackIds = await _context.Tracks
+                    .Where(t => t.Name.ToLower().Contains(normalizedQuery) ||
+                                t.TrackArtists.Any(ta => ta.Artist.Name.ToLower().Contains(normalizedQuery)))
+                    .Select(t => t.Id)
+                    .ToListAsync();
+
+                // If search yields no tracks, return empty result immediately
+                if (!matchingTrackIds.Any())
+                {
+                    return Ok(new { total = 0, limit, offset, items = new List<object>() });
+                }
+            }
+
+            // 2. Aggregate history to get distinct tracks and valid pagination
+            var uniqueQuery = userHistoryQuery.AsQueryable();
+
+            if (matchingTrackIds != null)
+            {
+                uniqueQuery = uniqueQuery.Where(h => matchingTrackIds.Contains(h.TrackId));
+            }
+
+            // Group by TrackId to key distinct tracks, select max played date
+            var groupedQuery = uniqueQuery
+                .GroupBy(h => h.TrackId)
+                .Select(g => new
+                {
+                    TrackId = g.Key,
+                    LastPlayed = g.Max(h => h.PlayedAt)
+                });
+
+            // Count total unique items
+            var total = await groupedQuery.CountAsync();
+
+            // 3. Apply pagination on the IDs/Dates
+            var pagedItems = await groupedQuery
+                .OrderByDescending(x => x.LastPlayed)
+                .Skip(offset)
+                .Take(limit)
+                .ToListAsync();
+
+            if (!pagedItems.Any())
+            {
+                return Ok(new { total, limit, offset, items = new List<object>() });
+            }
+
+            // 4. Fetch details for the paged tracks
+            var pagedTrackIds = pagedItems.Select(x => x.TrackId).ToList();
+
+            var trackDetails = await _context.Tracks
+                .Where(t => pagedTrackIds.Contains(t.Id))
+                .Include(t => t.Album)
+                .Include(t => t.TrackArtists)
+                .ThenInclude(ta => ta.Artist)
+                .ToListAsync();
+
+            // 5. Join back in memory to preserve order
+            var resultItems = pagedItems
+                .Join(trackDetails,
+                    p => p.TrackId,
+                    t => t.Id,
+                    (p, t) => new
+                    {
+                        id = t.Id,
+                        spotifyId = t.SpotifyId,
+                        name = t.Name,
+                        durationMs = t.DurationMs,
+                        playedAt = p.LastPlayed,
+                        album = t.Album != null ? new
+                        {
+                            id = t.Album.Id,
+                            name = t.Album.Name,
+                            imageUrl = t.Album.ImageUrl
+                        } : null,
+                        artists = t.TrackArtists
+                            .OrderBy(ta => ta.ArtistOrder)
+                            .Select(ta => new
+                            {
+                                id = ta.Artist.Id,
+                                name = ta.Artist.Name
+                            })
+                            .ToList()
+                    })
+                .ToList();
+
+            return Ok(new
+            {
+                total,
+                limit,
+                offset,
+                items = resultItems
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting unique tracks for user {UserId}", userId);
+            return StatusCode(500, new { error = "Internal server error" });
+        }
+    }
+
+    /// <summary>
     /// Retrieves enriched listening history for a specific user.
     /// </summary>
     /// <param name="userId">The ID of the user to retrieve history for.</param>

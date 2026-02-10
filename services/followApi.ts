@@ -140,10 +140,14 @@ class FollowApiService {
     userId: number,
     limit: number = 50,
     offset: number = 0,
+    query?: string,
   ): Promise<FollowListResponse> {
     const params = new URLSearchParams();
     params.append("limit", limit.toString());
     params.append("offset", offset.toString());
+    if (query) {
+      params.append("query", query);
+    }
 
     const response = await api.makeAuthenticatedRequest(
       `/api/follow/followers/${userId}?${params.toString()}`,
@@ -161,15 +165,20 @@ class FollowApiService {
    * @param userId - The ID of the user
    * @param limit - Number of results to return (default 50)
    * @param offset - Number of results to skip (default 0)
+   * @param query - Optional search query
    */
   async getFollowing(
     userId: number,
     limit: number = 50,
     offset: number = 0,
+    query?: string,
   ): Promise<FollowListResponse> {
     const params = new URLSearchParams();
     params.append("limit", limit.toString());
     params.append("offset", offset.toString());
+    if (query) {
+      params.append("query", query);
+    }
 
     const response = await api.makeAuthenticatedRequest(
       `/api/follow/following/${userId}?${params.toString()}`,

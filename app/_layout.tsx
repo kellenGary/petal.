@@ -127,6 +127,27 @@ function RootLayoutNav() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="profile/followers"
+        options={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.background },
+        }}
+      />
+      <Stack.Screen
+        name="profile/following-users"
+        options={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.background },
+        }}
+      />
+      <Stack.Screen
+        name="profile/unique-songs"
+        options={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.background },
+        }}
+      />
     </Stack>
   );
 }
