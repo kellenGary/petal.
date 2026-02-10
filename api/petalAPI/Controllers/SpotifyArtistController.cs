@@ -83,53 +83,8 @@ public class SpotifyArtistController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Retrieves an artist's top tracks directly from Spotify.
-    /// </summary>
-    [HttpGet("{artistId}/top-tracks")]
-    public async Task<IActionResult> GetArtistTopTracks(string artistId)
-    {
-        try
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
-            {
-                return Unauthorized(new { error = "Invalid token" });
-            }
+    // Note: GetArtistTopTracks was removed — Spotify API no longer supports GET /artists/{id}/top-tracks
 
-            var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
-            if (accessToken == null) return Unauthorized(new { error = "Spotify token expired" });
-
-            var client = _httpClientFactory.CreateClient("Spotify");
-            client.DefaultRequestHeaders.Authorization = 
-                new AuthenticationHeaderValue("Bearer", accessToken);
-
-            var response = await client.GetAsync($"https://api.spotify.com/v1/artists/{artistId}/top-tracks?market=US");
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                _logger.LogError("Spotify API error: {Error}", error);
-                
-                return StatusCode((int)response.StatusCode, new 
-                { 
-                    error = "Failed to fetch artist top tracks from Spotify",
-                    statusCode = (int)response.StatusCode,
-                    spotifyError = error
-                });
-            }
-
-            var content = await response.Content.ReadAsStringAsync();
-            var topTracks = JsonSerializer.Deserialize<JsonElement>(content);
-
-            return Ok(topTracks);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error fetching artist top tracks");
-            return StatusCode(500, new { error = "Internal server error" });
-        }
-    }
 
     /// <summary>
     /// Retrieves an artist's albums directly from Spotify.
@@ -316,6 +271,7 @@ public class SpotifyArtistController : ControllerBase
                                        images.GetArrayLength() > 0
                             ? images[0].GetProperty("url").GetString()
                             : null;
+                        // Note: Spotify API no longer returns popularity — this will always be null
                         var popularity = artistJson.TryGetProperty("popularity", out var pop) 
                             ? pop.GetInt32() 
                             : (int?)null;

@@ -109,7 +109,6 @@ export default function PostPreviewScreen() {
           <Image
             source={{ uri: selectedContent.imageUrl || undefined }}
             style={styles.previewImage}
-            placeholder={require("@/assets/images/icon.png")}
           />
           <View style={styles.previewInfo}>
             <ThemedText style={[styles.previewName, { color: colors.text }]} numberOfLines={2}>

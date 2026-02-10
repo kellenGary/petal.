@@ -10,20 +10,7 @@ export interface Artist {
   external_urls: { spotify: string };
 }
 
-export interface Track {
-  id: string;
-  name: string;
-  duration_ms: number;
-  popularity: number;
-  album: {
-    id: string;
-    name: string;
-    images: { url: string; height: number; width: number }[];
-    release_date: string;
-  };
-  artists: { id: string; name: string }[];
-  external_urls: { spotify: string };
-}
+// Note: Track interface and getArtistTopTracks removed — Spotify API no longer supports GET /artists/{id}/top-tracks
 
 export interface Album {
   id: string;
@@ -43,16 +30,6 @@ class ArtistApi {
     );
     if (!response.ok) {
       throw new Error("Failed to fetch artist");
-    }
-    return response.json();
-  }
-
-  async getArtistTopTracks(id: string): Promise<{ tracks: Track[] }> {
-    const response = await api.makeAuthenticatedRequest(
-      `/api/spotify/artists/${id}/top-tracks`,
-    );
-    if (!response.ok) {
-      throw new Error("Failed to fetch artist top tracks");
     }
     return response.json();
   }

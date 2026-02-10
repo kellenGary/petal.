@@ -1,0 +1,222 @@
+# Spotify Feb 2026 API Migration – Step-by-Step Guide
+
+Work through these tasks one at a time. Each is self-contained with the **what**, **why**, **where**, and **how**.
+
+---
+
+## Task 1: Migrate [LikeSong](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyTrackController.cs#175-218) to `PUT /me/library`
+
+**Why:** `PUT /me/tracks?ids={id}` is removed. The new unified endpoint is `PUT /me/library`.
+
+**Where:** [SpotifyTrackController.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyTrackController.cs#L175-L217) → [LikeSong](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyTrackController.cs#175-218) method
+
+**What to change:**
+- The current call at **L196** sends `PUT /me/tracks?ids={songId}` with a null body.
+- Replace with `PUT /me/library` and send a JSON body containing an array of Spotify URIs:
+  ```json
+  { "uris": ["spotify:track:{songId}"] }
+  ```
+- Update the HTTP call from `PutAsync($".../me/tracks?ids={songId}", null)` to `PutAsync(".../me/library", jsonContent)`.
+
+---
+
+## Task 2: Migrate [UnlikeSong](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyTrackController.cs#219-262) to `DELETE /me/library`
+
+**Why:** `DELETE /me/tracks?ids={id}` is removed. Use `DELETE /me/library` instead.
+
+**Where:** [SpotifyTrackController.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyTrackController.cs#L219-L261) → [UnlikeSong](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyTrackController.cs#219-262) method
+
+**What to change:**
+- The current call at **L240** sends `DELETE /me/tracks?ids={songId}`.
+- Replace with `DELETE /me/library` and send a JSON body containing:
+  ```json
+  { "uris": ["spotify:track:{songId}"] }
+  ```
+- Note: `DeleteAsync` doesn't natively support a body in .NET's `HttpClient`. You'll need to use `SendAsync` with an `HttpRequestMessage` of method `DELETE` and attach the JSON body.
+
+---
+
+## Task 3: Migrate [SaveAlbum](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyAlbumController.cs#356-418) to `PUT /me/library`
+
+**Why:** `PUT /me/albums?ids={id}` is removed. Use the unified `PUT /me/library`.
+
+**Where:** [SpotifyAlbumController.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyAlbumController.cs#L356-L417) → [SaveAlbum](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyAlbumController.cs#356-418) method
+
+**What to change:**
+- The current call at **L377** sends `PUT /me/albums?ids={albumId}` with a null body.
+- Replace with `PUT /me/library` and a JSON body:
+  ```json
+  { "uris": ["spotify:album:{albumId}"] }
+  ```
+
+---
+
+## Task 4: Migrate [UnsaveAlbum](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyAlbumController.cs#419-476) to `DELETE /me/library`
+
+**Why:** `DELETE /me/albums?ids={id}` is removed. Use `DELETE /me/library`.
+
+**Where:** [SpotifyAlbumController.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyAlbumController.cs#L419-L475) → [UnsaveAlbum](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyAlbumController.cs#419-476) method
+
+**What to change:**
+- The current call at **L440** sends `DELETE /me/albums?ids={albumId}`.
+- Replace with `DELETE /me/library` and a JSON body:
+  ```json
+  { "uris": ["spotify:album:{albumId}"] }
+  ```
+- Same `SendAsync` approach as Task 2 for the DELETE-with-body pattern.
+
+> [!TIP]
+> Tasks 1–4 all follow the same pattern. Consider creating a shared helper method like `SaveToLibrary(string uri)` and `RemoveFromLibrary(string uri)` in a service class to avoid duplicating the HTTP logic.
+
+---
+
+## Task 5: Migrate playlist creation in `SongOfTheDayController`
+
+**Why:** `POST /users/{user_id}/playlists` is removed. Use `POST /me/playlists` instead.
+
+**Where:** [SongOfTheDayController.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SongOfTheDayController.cs#L344) → SOTD playlist creation
+
+**What to change:**
+- At **L344**, the URL is `https://api.spotify.com/v1/users/{user.SpotifyId}/playlists`.
+- Simply change it to `https://api.spotify.com/v1/me/playlists`. The request body and auth token stay the same — Spotify will create the playlist for whichever user the token belongs to.
+
+---
+
+## Task 6: Replace batch `GET /tracks?ids=` with individual calls
+
+**Why:** `GET /tracks?ids={ids}` (multi-track batch) is removed. `GET /tracks/{id}` (single) is still available.
+
+**Where:** [DbController.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/DbController.cs#L169) → track enrichment
+
+**What to change:**
+- At **L169**, the code builds a comma-separated list of IDs and fetches them all in one call.
+- Replace with a loop that calls `GET /tracks/{id}` for each track individually.
+- Use `Task.WhenAll` or `Parallel.ForEachAsync` with a concurrency limit (e.g. 5) to avoid hitting Spotify's rate limits while still being efficient.
+- Merge the individual JSON responses into the same structure the rest of the method expects.
+
+---
+
+## Task 7: Replace batch `GET /albums?ids=` with individual calls
+
+**Why:** `GET /albums?ids={ids}` (multi-album batch) is removed. `GET /albums/{id}` (single) is still available.
+
+**Where:** [DbController.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/DbController.cs#L403) → album enrichment
+
+**What to change:**
+- Same pattern as Task 6. At **L403**, replace the batch call with individual `GET /albums/{id}` calls.
+- Use the same throttled parallel pattern.
+
+---
+
+## Task 8: Update playlist response parsing (`tracks` → `items`)
+
+**Why:** In playlist responses, Spotify is renaming `tracks` to `items`, and nested `track` objects become `item`.
+
+**Where (3 files):**
+
+| File | Line | Current Code |
+|---|---|---|
+| [PlaylistSyncService.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Services/PlaylistSyncService.cs#L84) | L84 | `TryGetProperty("tracks", ...)` |
+| [PlaylistSyncService.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Services/PlaylistSyncService.cs#L278) | L278 | `TryGetProperty("track", ...)` |
+| [DbController.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/DbController.cs#L462-L478) | L462 | `fields=tracks.total` in URL |
+
+**What to change:**
+1. **L84** in [PlaylistSyncService.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Services/PlaylistSyncService.cs): Change `"tracks"` → `"items"`
+2. **L278** in [PlaylistSyncService.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Services/PlaylistSyncService.cs): Change `"track"` → `"item"`
+3. **L462** in [DbController.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/DbController.cs): Change the URL query from `fields=tracks.total` to `fields=items.total`
+
+> [!WARNING]
+> Playlist responses will now only return item data for the **current user's own playlists**. Other users' playlists will only have metadata. If your sync service processes playlists owned by other users, you'll need to handle the case where `items` is empty or missing.
+
+---
+
+## Task 9: Handle `popularity` field removal
+
+**Why:** `popularity` is removed from Track, Artist, and Album responses. All future API calls will return this as missing/null.
+
+> [!IMPORTANT]
+> This is the most wide-reaching change. The `popularity` field is read, stored, and consumed in ~15 locations. However, since your code already uses `TryGetProperty`, nothing will crash — values will just silently become `null`.
+
+**Sub-tasks (work through in order):**
+
+### 9a. Update the Recommendation Engine
+
+**Where:** [RecommendationController.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/RecommendationController.cs#L377-L388)
+
+This is the most important fix. The `POPULARITY_WEIGHT` scoring factor (L47) will always produce 0 since `track.Popularity` will be null. You need to either:
+- Remove popularity from the scoring formula entirely and redistribute its weight to other factors
+- Replace it with a local popularity metric (e.g. play count across your users)
+
+### 9b. Update sync services (acknowledge null)
+These files already handle missing values gracefully via `TryGetProperty`, but you should add comments or logging:
+- [PlaylistSyncService.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Services/PlaylistSyncService.cs#L475-L476) (L475-476)
+- [SavedTracksSyncService.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Services/SavedTracksSyncService.cs#L263-L264) (L263-264)
+- [SpotifyDataService.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Services/SpotifyDataService.cs#L120-L146) (L120-146)
+- [ListeningHistoryService.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Services/ListeningHistoryService.cs#L247) (L247, L518)
+
+### 9c. Update artist sync
+- [SpotifyArtistController.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyArtistController.cs#L319-L345) — popularity parsing in [SyncFollowedArtists](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyArtistController.cs#230-397)
+- [DbController.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/DbController.cs#L511-L528) — `BackfillArtistData` tries to fetch popularity
+
+### 9d. Decide on DB schema
+- The `Popularity` columns in [Track.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Models/Track.cs#L15) and [Artist.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Models/Artist.cs#L15) can stay (they're nullable) — historical data will be preserved, but new data will be null.
+- Alternatively, create a migration to drop the columns if you want a clean schema.
+
+---
+
+## Task 10: Handle `external_ids` / ISRC removal
+
+**Why:** `external_ids` is removed from Track responses, so the ISRC field you parse from it will always be null.
+
+**Where:**
+- [PlaylistSyncService.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Services/PlaylistSyncService.cs#L478) (L478)
+- [SavedTracksSyncService.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Services/SavedTracksSyncService.cs#L266) (L266)
+- [Track.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Models/Track.cs#L16) — `Isrc` model field
+
+**What to change:**
+- The `TryGetProperty("external_ids", ...)` calls won't crash (they already handle missing data), so this is low risk.
+- If you don't use `Isrc` for anything meaningful, you can optionally remove the field from the model and clean up the parsing code.
+- If you do use it, historical values will be preserved but new tracks won't have it.
+
+---
+
+## Task 11: Remove [GetArtistTopTracks](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyArtistController.cs#86-133) endpoint
+
+**Why:** `GET /artists/{id}/top-tracks` is removed with no replacement.
+
+**Where:** [SpotifyArtistController.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyArtistController.cs#L86-L132) → [GetArtistTopTracks](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyArtistController.cs#86-133)
+
+**What to change:**
+- Delete the entire [GetArtistTopTracks](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyArtistController.cs#86-133) method (L86-132).
+- Remove any frontend code that calls `/api/spotifyartist/{id}/top-tracks`.
+- Optionally, build a replacement that derives "top tracks" from your local listening history data for that artist.
+
+---
+
+## Task 12: Remove [GetNewReleases](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyAlbumController.cs#477-541) endpoint
+
+**Why:** `GET /browse/new-releases` is removed with no replacement.
+
+**Where:** [SpotifyAlbumController.cs](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyAlbumController.cs#L477-L540) → [GetNewReleases](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyAlbumController.cs#477-541)
+
+**What to change:**
+- Delete the entire [GetNewReleases](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyAlbumController.cs#477-541) method (L477-540).
+- Remove any frontend code that calls `/api/spotifyalbum/new-releases`.
+- Optionally, build a replacement by fetching recent albums from followed artists using `GET /artists/{id}/albums` (still available) and filtering by release date.
+
+---
+
+## Quick Reference: Completion Checklist
+
+- [ ] Task 1 – [LikeSong](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyTrackController.cs#175-218) → `PUT /me/library`
+- [ ] Task 2 – [UnlikeSong](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyTrackController.cs#219-262) → `DELETE /me/library`
+- [ ] Task 3 – [SaveAlbum](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyAlbumController.cs#356-418) → `PUT /me/library`
+- [ ] Task 4 – [UnsaveAlbum](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyAlbumController.cs#419-476) → `DELETE /me/library`
+- [ ] Task 5 – Playlist creation → `POST /me/playlists`
+- [ ] Task 6 – Batch tracks → individual `GET /tracks/{id}`
+- [ ] Task 7 – Batch albums → individual `GET /albums/{id}`
+- [ ] Task 8 – Playlist field renames (`tracks`→`items`)
+- [ ] Task 9 – Handle `popularity` removal (4 sub-tasks)
+- [ ] Task 10 – Handle `external_ids`/ISRC removal
+- [ ] Task 11 – Remove [GetArtistTopTracks](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyArtistController.cs#86-133)
+- [ ] Task 12 – Remove [GetNewReleases](file:///Users/Kellen/Desktop/petal/api/petalAPI/Controllers/SpotifyAlbumController.cs#477-541)

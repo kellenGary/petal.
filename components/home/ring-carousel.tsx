@@ -111,9 +111,6 @@ export default function RingCarousel({
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const colors = Colors[isDark ? "dark" : "light"];
-  const AppIcon = isDark
-    ? require("@/assets/images/icon.png")
-    : require("@/assets/images/black-icon.png");
 
   // Ring dimensions - elliptical shape
   const centerX = width / 2;

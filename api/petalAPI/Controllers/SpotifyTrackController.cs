@@ -193,7 +193,13 @@ public class SpotifyTrackController : ControllerBase
             client.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", accessToken);
 
-            var response = await client.PutAsync($"https://api.spotify.com/v1/me/tracks?ids={songId}", null);
+            var requestBody = new { uris = new[] { $"spotify:track:{songId}" } };
+            var jsonContent = new StringContent(
+                JsonSerializer.Serialize(requestBody),
+                System.Text.Encoding.UTF8,
+                "application/json");
+
+            var response = await client.PutAsync("https://api.spotify.com/v1/me/library", jsonContent);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -237,7 +243,18 @@ public class SpotifyTrackController : ControllerBase
             client.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", accessToken);
 
-            var response = await client.DeleteAsync($"https://api.spotify.com/v1/me/tracks?ids={songId}");
+            var requestBody = new { uris = new[] { $"spotify:track:{songId}" } };
+            var jsonContent = new StringContent(
+                JsonSerializer.Serialize(requestBody),
+                System.Text.Encoding.UTF8,
+                "application/json");
+
+            var request = new HttpRequestMessage(HttpMethod.Delete, "https://api.spotify.com/v1/me/library")
+            {
+                Content = jsonContent
+            };
+
+            var response = await client.SendAsync(request);
 
             if (!response.IsSuccessStatusCode)
             {

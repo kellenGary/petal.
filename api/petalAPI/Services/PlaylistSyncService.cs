@@ -81,8 +81,8 @@ public class PlaylistSyncService : IPlaylistSyncService
                 
                 // Get track count
                 int? trackCount = null;
-                if (spotifyPlaylist.TryGetProperty("tracks", out var tracksObj) && 
-                    tracksObj.TryGetProperty("total", out var totalProp))
+                if (spotifyPlaylist.TryGetProperty("items", out var itemsObj) && 
+                    itemsObj.TryGetProperty("total", out var totalProp))
                 {
                     trackCount = totalProp.GetInt32();
                 }
@@ -275,7 +275,7 @@ public class PlaylistSyncService : IPlaylistSyncService
                 int position = 0;
                 foreach (var trackItem in spotifyTracks)
                 {
-                    if (!trackItem.TryGetProperty("track", out var trackElement) || 
+                    if (!trackItem.TryGetProperty("item", out var trackElement) || 
                         trackElement.ValueKind == JsonValueKind.Null)
                     {
                         position++;
@@ -472,9 +472,11 @@ public class PlaylistSyncService : IPlaylistSyncService
                 : 0,
             Explicit = trackElement.TryGetProperty("explicit", out var explicitProp) 
                 && explicitProp.GetBoolean(),
+            // Note: Spotify API no longer returns popularity — this will always be null for new tracks
             Popularity = trackElement.TryGetProperty("popularity", out var popularityProp) 
                 ? popularityProp.GetInt32() 
                 : null,
+            // Note: Spotify API no longer returns external_ids — ISRC will always be null for new tracks
             Isrc = trackElement.TryGetProperty("external_ids", out var externalIds) &&
                    externalIds.TryGetProperty("isrc", out var isrcProp)
                 ? isrcProp.GetString()

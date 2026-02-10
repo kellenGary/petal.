@@ -17,6 +17,7 @@ import LeafLogoDraw from "../animated-logo";
 import { ThemedText } from "../themed-text";
 import { useFollowingSotds } from "./hooks";
 import { generateBubblePositions, SCREEN_HEIGHT } from "./utils";
+import { Image } from "expo-image";
 
 export default function Hero() {
     const colorScheme = useColorScheme();
@@ -95,7 +96,7 @@ export default function Hero() {
                         <LeafLogoDraw />
 
                         {/* <Image
-                            source={!isDark ? require("../../assets/images/black-icon.svg") : require("../../assets/images/white-icon.svg")}
+                            source={!isDark ? require("../../../assets/images/black-icon.png") : require("../../../assets/images/white-icon.png")}
                             style={styles.headerImage}
                         /> */}
                     </View>
@@ -151,8 +152,8 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     headerImage: {
-        width: 80,
-        height: 80,
+        width: 128,
+        height: 128,
     },
     brandText: {
         fontWeight: "700",

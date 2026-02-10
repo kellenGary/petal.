@@ -11,7 +11,7 @@ namespace PetalAPI.Controllers;
 /// <summary>
 /// Controller for personalized music recommendations.
 /// Uses a weighted scoring algorithm based on user's listening history,
-/// friend activity, genre preferences, and track popularity.
+/// friend activity, and genre preferences.
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -29,25 +29,19 @@ public class RecommendationController : ControllerBase
     /// Weight for tracks by artists the user listens to frequently.
     /// Higher value = more recommendations from familiar artists.
     /// </summary>
-    private const double ARTIST_AFFINITY_WEIGHT = 0.40;    // 40%
+    private const double ARTIST_AFFINITY_WEIGHT = 0.43;    // 43%
     
     /// <summary>
     /// Weight for tracks that followed users have listened to recently.
     /// Higher value = more social/discovery-based recommendations.
     /// </summary>
-    private const double FRIEND_ACTIVITY_WEIGHT = 0.30;    // 30%
+    private const double FRIEND_ACTIVITY_WEIGHT = 0.33;    // 33%
     
     /// <summary>
     /// Weight for tracks from artists that share genres with user's favorites.
     /// Higher value = more genre-exploration recommendations.
     /// </summary>
-    private const double GENRE_MATCH_WEIGHT = 0.20;        // 20%
-    
-    /// <summary>
-    /// Weight for track's Spotify popularity score.
-    /// Higher value = preference for mainstream/trending tracks.
-    /// </summary>
-    private const double POPULARITY_WEIGHT = 0.10;         // 10%
+    private const double GENRE_MATCH_WEIGHT = 0.24;        // 24%
     
     /// <summary>
     /// Number of days to look back for user's listening history analysis.
@@ -280,15 +274,17 @@ public class RecommendationController : ControllerBase
         // Check if we have enough candidates
         if (candidateTrackIds.Count < 20)
         {
-            // Fallback: fill with popular tracks until we have enough
+            // Fallback: fill with most-played tracks across all users
+            // (Spotify popularity field is no longer available)
             var needed = 20 - candidateTrackIds.Count;
-            var popularTracks = await _context.Tracks
-                .Where(t => !excludedTrackIds.Contains(t.Id) && !candidateTrackIds.Contains(t.Id) && t.Popularity != null)
-                .OrderByDescending(t => t.Popularity)
-                .Take(needed + 10) // Take extra just in case
-                .Select(t => t.Id)
+            var mostPlayedTracks = await _context.ListeningHistory
+                .Where(lh => !excludedTrackIds.Contains(lh.TrackId) && !candidateTrackIds.Contains(lh.TrackId))
+                .GroupBy(lh => lh.TrackId)
+                .OrderByDescending(g => g.Count())
+                .Take(needed + 10)
+                .Select(g => g.Key)
                 .ToListAsync();
-            candidateTrackIds.UnionWith(popularTracks);
+            candidateTrackIds.UnionWith(mostPlayedTracks);
         }
 
         // Load full track data for candidates
@@ -310,7 +306,6 @@ public class RecommendationController : ControllerBase
             double artistScore = 0;
             double friendScore = 0;
             double genreScore = 0;
-            double popularityScore = 0;
             
             string primaryReason = "trending";
             string? reasonContext = null;
@@ -373,19 +368,16 @@ public class RecommendationController : ControllerBase
                 }
             }
 
-            // --- Popularity Score ---
-            // Normalize Spotify popularity (0-100) to (0-1)
-            popularityScore = (track.Popularity ?? 0) / 100.0;
-
             // ================================================================
             // FINAL WEIGHTED SCORE
             // Adjust the weights at the top of this file to tune behavior
+            // Note: Spotify popularity field removed — scoring uses only
+            // artist affinity, friend activity, and genre match.
             // ================================================================
             double totalScore = 
                 (artistScore * ARTIST_AFFINITY_WEIGHT) +
                 (friendScore * FRIEND_ACTIVITY_WEIGHT) +
-                (genreScore * GENRE_MATCH_WEIGHT) +
-                (popularityScore * POPULARITY_WEIGHT);
+                (genreScore * GENRE_MATCH_WEIGHT);
 
             // Small random factor to add variety (±5%)
             totalScore *= (0.95 + Random.Shared.NextDouble() * 0.1);

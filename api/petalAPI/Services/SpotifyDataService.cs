@@ -62,7 +62,7 @@ public class SpotifyDataService : ISpotifyDataService
             // If the existing artist has minimal data (e.g. no image/popularity/genres), we might want to update it.
             // For now, let's assume if it exists we return it, but maybe check if we need to enrich it later?
             // To be safe and follow the request "fetch genres/profile/popularity", we should probably backfill if missing.
-            if (existingArtist.ImageUrl == null || existingArtist.Popularity == null)
+            if (existingArtist.ImageUrl == null || existingArtist.GenresJson == null)
             {
                 // Fall through to fetch from Spotify and update
                  _logger.LogDebug("[SpotifyData] Artist {Name} exists but missing details, fetching from Spotify...", existingArtist.Name);
@@ -117,6 +117,7 @@ public class SpotifyDataService : ISpotifyDataService
                     }
                 }
 
+                // Note: Spotify API no longer returns popularity — this will always be null
                 int? popularity = artistData.TryGetProperty("popularity", out var popularityProp) 
                     ? popularityProp.GetInt32() 
                     : null;

@@ -1,10 +1,9 @@
 import { ThemedText } from '@/components/ui/themed-text';
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import artistApi, { Album, Artist, Track } from "@/services/artistApi";
-import playbackApi from "@/services/playbackApi";
+import artistApi, { Album, Artist } from "@/services/artistApi";
+
 import { MaterialIcons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -20,7 +19,7 @@ export default function ArtistScreen() {
   const { id } = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const [artist, setArtist] = useState<Artist | null>(null);
-  const [topTracks, setTopTracks] = useState<Track[]>([]);
+
   const [albums, setAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,13 +34,11 @@ export default function ArtistScreen() {
       setLoading(true);
       setError(null);
       try {
-        const [artistData, tracksData, albumsData] = await Promise.all([
+        const [artistData, albumsData] = await Promise.all([
           artistApi.getArtist(id as string),
-          artistApi.getArtistTopTracks(id as string),
           artistApi.getArtistAlbums(id as string),
         ]);
         setArtist(artistData);
-        setTopTracks(tracksData.tracks || []);
         setAlbums(albumsData.items || []);
       } catch (err) {
         console.error("Error fetching artist data:", err);
@@ -54,10 +51,7 @@ export default function ArtistScreen() {
     fetchArtistData();
   }, [id]);
 
-  const handlePlayTrack = useCallback((trackId: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    playbackApi.playSong(trackId);
-  }, []);
+
 
   const handleTrackPress = useCallback((trackId: string) => {
     router.push(`/song/${trackId}` as any);
@@ -153,64 +147,7 @@ export default function ArtistScreen() {
         </View>
       </View>
 
-      {/* Top Tracks Section */}
-      {topTracks.length > 0 && (
-        <View style={styles.section}>
-          <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
-            Top Tracks
-          </ThemedText>
-          <View style={[styles.trackList, { backgroundColor: colors.card }]}>
-            {topTracks.slice(0, 5).map((track, index) => (
-              <Pressable
-                key={track.id}
-                style={styles.trackItem}
-                onPress={() => handleTrackPress(track.id)}
-              >
-                <ThemedText style={[styles.trackIndex, { color: colors.icon }]}>
-                  {index + 1}
-                </ThemedText>
-                <Image
-                  source={{
-                    uri:
-                      track.album?.images?.[2]?.url ||
-                      track.album?.images?.[0]?.url ||
-                      "",
-                  }}
-                  style={styles.trackAlbumArt}
-                />
-                <View style={styles.trackInfo}>
-                  <ThemedText
-                    style={[styles.trackName, { color: colors.text }]}
-                    numberOfLines={1}
-                  >
-                    {track.name}
-                  </ThemedText>
-                  <ThemedText
-                    style={[styles.trackAlbum, { color: colors.icon }]}
-                    numberOfLines={1}
-                  >
-                    {track.album?.name}
-                  </ThemedText>
-                </View>
-                <ThemedText style={[styles.trackDuration, { color: colors.icon }]}>
-                  {formatDuration(track.duration_ms)}
-                </ThemedText>
-                <Pressable
-                  style={styles.playButton}
-                  onPress={() => handlePlayTrack(track.id)}
-                  hitSlop={8}
-                >
-                  <MaterialIcons
-                    name="play-circle-filled"
-                    size={28}
-                    color={Colors.primary}
-                  />
-                </Pressable>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-      )}
+
 
       {/* Albums Section */}
       {albums.length > 0 && (
@@ -323,45 +260,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: 12,
   },
-  trackList: {
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  trackItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    gap: 10,
-  },
-  trackIndex: {
-    width: 20,
-    fontSize: 14,
-    textAlign: "center",
-  },
-  trackAlbumArt: {
-    width: 44,
-    height: 44,
-    borderRadius: 4,
-  },
-  trackInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  trackName: {
-    fontSize: 15,
-    fontWeight: "500",
-  },
-  trackAlbum: {
-    fontSize: 13,
-  },
-  trackDuration: {
-    fontSize: 13,
-    marginRight: 4,
-  },
-  playButton: {
-    padding: 4,
-  },
+
   albumsScroll: {
     gap: 14,
   },

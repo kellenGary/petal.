@@ -341,7 +341,7 @@ public class SongOfTheDayController : ControllerBase
         };
 
         var createResponse = await client.PostAsJsonAsync(
-            $"https://api.spotify.com/v1/users/{user.SpotifyId}/playlists",
+            $"https://api.spotify.com/v1/me/playlists",
             createPlaylistBody);
 
         if (!createResponse.IsSuccessStatusCode)

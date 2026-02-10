@@ -150,12 +150,7 @@ class SpotifyApiService {
     return await response.json();
   }
 
-  async getNewReleases(): Promise<any> {
-    const response = await api.makeAuthenticatedRequest(
-      "/api/spotify/albums/new-releases",
-    );
-    return await response.json();
-  }
+  // Note: getNewReleases removed — Spotify API no longer supports GET /browse/new-releases
 
   async getRecentlyPlayed(userId?: string): Promise<any> {
     const response = await api.makeAuthenticatedRequest(

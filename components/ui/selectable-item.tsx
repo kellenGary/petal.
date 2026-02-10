@@ -38,7 +38,6 @@ export default function SelectableItem({
       <Image
         source={{ uri: imageUrl || undefined }}
         style={styles.image}
-        placeholder={require("@/assets/images/icon.png")}
       />
       <View style={styles.info}>
         <ThemedText style={styles.title} numberOfLines={1}>

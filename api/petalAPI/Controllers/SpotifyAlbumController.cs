@@ -374,7 +374,13 @@ public class SpotifyAlbumController : ControllerBase
             client.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", accessToken);
 
-            var response = await client.PutAsync($"https://api.spotify.com/v1/me/albums?ids={albumId}", null);
+            var requestBody = new { uris = new[] { $"spotify:album:{albumId}" } };
+            var jsonContent = new StringContent(
+                JsonSerializer.Serialize(requestBody),
+                System.Text.Encoding.UTF8,
+                "application/json");
+
+            var response = await client.PutAsync("https://api.spotify.com/v1/me/library", jsonContent);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -437,7 +443,18 @@ public class SpotifyAlbumController : ControllerBase
             client.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", accessToken);
 
-            var response = await client.DeleteAsync($"https://api.spotify.com/v1/me/albums?ids={albumId}");
+            var requestBody = new { uris = new[] { $"spotify:album:{albumId}" } };
+            var jsonContent = new StringContent(
+                JsonSerializer.Serialize(requestBody),
+                System.Text.Encoding.UTF8,
+                "application/json");
+
+            var request = new HttpRequestMessage(HttpMethod.Delete, "https://api.spotify.com/v1/me/library")
+            {
+                Content = jsonContent
+            };
+
+            var response = await client.SendAsync(request);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -474,68 +491,5 @@ public class SpotifyAlbumController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Retrieves new releases directly from Spotify.
-    /// </summary>
-    [HttpGet("new-releases")]
-    public async Task<IActionResult> GetNewReleases() 
-    {
-        try
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
-            {
-                return Unauthorized(new { error = "Invalid token" });
-            }
-
-            var accessToken = await _spotifyTokenService.GetValidAccessTokenAsync(userId);
-            if (accessToken == null) return Unauthorized(new { error = "Spotify token expired" });
-
-            var client = _httpClientFactory.CreateClient("Spotify");
-            client.DefaultRequestHeaders.Authorization = 
-                new AuthenticationHeaderValue("Bearer", accessToken);
-
-            var response = await client.GetAsync("https://api.spotify.com/v1/browse/new-releases?limit=20");
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                _logger.LogError("Spotify API error: {Error}", error);
-                
-                return StatusCode((int)response.StatusCode, new 
-                { 
-                    error = "Failed to fetch new releases from Spotify",
-                    statusCode = (int)response.StatusCode,
-                    spotifyError = error
-                });
-            }
-
-            var content = await response.Content.ReadAsStringAsync();
-            var data = JsonSerializer.Deserialize<JsonElement>(content);
-
-            var albums = new List<JsonElement>();
-            if (data.TryGetProperty("albums", out var albumsWrapper) && 
-                albumsWrapper.TryGetProperty("items", out var items))
-            {
-                foreach (var album in items.EnumerateArray())
-                {
-                    albums.Add(album);
-                }
-            }
-
-            _logger.LogInformation("Returning {Count} new releases", albums.Count);
-
-            var result = new
-            {
-                albums = albums
-            };
-
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error fetching new releases");
-            return StatusCode(500, new { error = "Internal server error" });
-        }
-    }
+    // Note: GetNewReleases was removed — Spotify API no longer supports GET /browse/new-releases
 }
