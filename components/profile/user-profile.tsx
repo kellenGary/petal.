@@ -1,5 +1,6 @@
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useScrollContext } from "@/contexts/ScrollContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import useTrackStreaks from "@/hooks/useTrackStreaks";
 import useUserContent from "@/hooks/useUserContent";
@@ -49,13 +50,14 @@ interface UserProfileProps {
  */
 export default function UserProfile({ userId }: UserProfileProps) {
   const insets = useSafeAreaInsets();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, profileData: cachedProfileData } = useAuth();
+  const { collapse } = useScrollContext();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const colors = Colors[isDark ? "dark" : "light"];
 
   // Profile-specific state
-  const [profileData, setProfileData] = useState<ProfileData | null>(null);
+  const [profileData, setProfileData] = useState<ProfileData | null>(userId ? null : cachedProfileData);
   const [activeTab, setActiveTab] = useState<TabType>("history");
   const [refreshing, setRefreshing] = useState(false);
   const [followCounts, setFollowCounts] = useState({
@@ -71,14 +73,18 @@ export default function UserProfile({ userId }: UserProfileProps) {
     topArtists,
     recentTracks,
     likedTracks,
+    likedAlbums,
     playlists,
+    followedArtists,
     loading: contentLoading,
     pagination,
     sotd,
     fetchTopArtists,
     fetchRecentTracks,
     fetchLikedTracks,
+    fetchLikedAlbums,
     fetchPlaylists,
+    fetchFollowedArtists,
     fetchSotd,
     resetPagination,
   } = useUserContent(userId);
@@ -241,7 +247,9 @@ export default function UserProfile({ userId }: UserProfileProps) {
       fetchProfileData();
       fetchRecentTracks(PAGE_SIZE, 0, true).catch(() => { });
       fetchLikedTracks(PAGE_SIZE, 0, true).catch(() => { });
+      fetchLikedAlbums(PAGE_SIZE, 0, true).catch(() => { });
       fetchPlaylists(true).catch(() => { });
+      fetchFollowedArtists(PAGE_SIZE, 0, true).catch(() => { });
       fetchTopArtists(true).catch(() => { });
       fetchSotd().catch(() => { });
     }, [isAuthenticated, userId]),
@@ -249,11 +257,11 @@ export default function UserProfile({ userId }: UserProfileProps) {
 
   // Reset data when userId changes
   useEffect(() => {
-    setProfileData(null);
+    setProfileData(userId ? null : cachedProfileData);
     setActiveTab("history");
     setFollowCounts({ followers: 0, following: 0 });
     resetPagination();
-  }, [userId, resetPagination]);
+  }, [userId, resetPagination, cachedProfileData]);
 
   // Load data on tab change if not already loaded
   useEffect(() => {
@@ -291,6 +299,7 @@ export default function UserProfile({ userId }: UserProfileProps) {
         bounces={true}
         onScroll={handleScroll}
         scrollEventThrottle={400}
+        onScrollBeginDrag={collapse}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -318,21 +327,16 @@ export default function UserProfile({ userId }: UserProfileProps) {
         </View>
 
         <ProfileContent
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
           loading={false}
           contentLoading={contentLoading}
           recentTracks={recentTracks}
           likedTracks={likedTracks}
+          likedAlbums={likedAlbums}
           playlists={playlists}
+          followedArtists={followedArtists}
           isOwnProfile={isOwnProfile}
           spotifyId={profileData?.spotifyId}
-          groupConsecutiveAlbums={groupConsecutiveAlbums}
-          getStreak={getStreak}
         />
-
-        {/* Footer spacer */}
-        <View style={styles.footerSpacer} />
       </ScrollView>
     </View>
   );
@@ -349,8 +353,5 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     alignItems: "center",
     gap: 8,
-  },
-  footerSpacer: {
-    height: 168,
   },
 });

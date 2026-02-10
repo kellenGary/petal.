@@ -1,6 +1,7 @@
-import { ThemedText } from '@/components/themed-text';
-import SongItem from "@/components/song-item";
+import SongItem from "@/components/ui/song-item";
+import { ThemedText } from '@/components/ui/themed-text';
 import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import spotifyApi from "@/services/spotifyApi";
 import Entypo from "@expo/vector-icons/Entypo";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -10,14 +11,12 @@ import { RelativePathString, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   Dimensions,
   Pressable,
-  Animated,
   ScrollView,
   StyleSheet,
-  Text,
-  useColorScheme,
-  View,
+  View
 } from "react-native";
 import {
   GestureHandlerRootView,
@@ -151,7 +150,7 @@ export default function PlaylistScreen() {
         ]}
       >
         <View style={styles.loaderWrapper}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={Colors.primary} />
           <ThemedText style={[styles.loadingText, { color: colors.text }]}>
             Loading playlist...
           </ThemedText>
@@ -171,7 +170,7 @@ export default function PlaylistScreen() {
           Playlist not found
         </ThemedText>
         <Pressable
-          style={[styles.backButton, { backgroundColor: colors.primary }]}
+          style={[styles.backButton, { backgroundColor: Colors.primary }]}
           onPress={() => router.back()}
         >
           <ThemedText style={styles.backButtonText}>Go Back</ThemedText>
@@ -621,7 +620,7 @@ export default function PlaylistScreen() {
                 </ThemedText>
               </View>
               <Pressable
-                style={[styles.playButton, { backgroundColor: colors.primary }]}
+                style={[styles.playButton, { backgroundColor: Colors.primary }]}
                 onPress={() => {
                   router.push(
                     `/song/${selectedTrack?.trackId}` as RelativePathString,

@@ -30,6 +30,10 @@ public class AppDbContext : DbContext
     public DbSet<UserProfileData> UserProfileData { get; set; }
     public DbSet<ListeningHistoryEnriched> ListeningHistoryEnriched { get; set; }
     public DbSet<SongOfTheDay> SongsOfTheDay { get; set; }
+    public DbSet<PostLike> PostLikes { get; set; }
+    public DbSet<Repost> Reposts { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
+    public DbSet<RecommendationDismissal> RecommendationDismissals { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -299,5 +303,82 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(s => s.TrackId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Post likes - composite key (UserId, PostId)
+        modelBuilder.Entity<PostLike>()
+            .HasKey(pl => new { pl.UserId, pl.PostId });
+        modelBuilder.Entity<PostLike>()
+            .HasOne(pl => pl.User)
+            .WithMany()
+            .HasForeignKey(pl => pl.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<PostLike>()
+            .HasOne(pl => pl.Post)
+            .WithMany(p => p.Likes)
+            .HasForeignKey(pl => pl.PostId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<PostLike>()
+            .HasIndex(pl => pl.CreatedAt);
+
+        // Reposts
+        modelBuilder.Entity<Repost>()
+            .HasIndex(r => new { r.UserId, r.OriginalPostId })
+            .IsUnique();
+        modelBuilder.Entity<Repost>()
+            .HasOne(r => r.User)
+            .WithMany()
+            .HasForeignKey(r => r.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<Repost>()
+            .HasOne(r => r.OriginalPost)
+            .WithMany()
+            .HasForeignKey(r => r.OriginalPostId)
+            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<Repost>()
+            .HasOne(r => r.RepostPost)
+            .WithMany()
+            .HasForeignKey(r => r.RepostPostId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Post self-reference for reposts
+        modelBuilder.Entity<Post>()
+            .HasOne(p => p.OriginalPost)
+            .WithMany()
+            .HasForeignKey(p => p.OriginalPostId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // Notifications
+        modelBuilder.Entity<Notification>()
+            .HasIndex(n => new { n.UserId, n.IsRead, n.CreatedAt });
+        modelBuilder.Entity<Notification>()
+            .HasOne(n => n.User)
+            .WithMany()
+            .HasForeignKey(n => n.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<Notification>()
+            .HasOne(n => n.ActorUser)
+            .WithMany()
+            .HasForeignKey(n => n.ActorUserId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<Notification>()
+            .HasOne(n => n.Post)
+            .WithMany()
+            .HasForeignKey(n => n.PostId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // Recommendation Dismissals
+        modelBuilder.Entity<RecommendationDismissal>()
+            .HasIndex(rd => new { rd.UserId, rd.TrackId })
+            .IsUnique();
+        modelBuilder.Entity<RecommendationDismissal>()
+            .HasOne(rd => rd.User)
+            .WithMany()
+            .HasForeignKey(rd => rd.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<RecommendationDismissal>()
+            .HasOne(rd => rd.Track)
+            .WithMany()
+            .HasForeignKey(rd => rd.TrackId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

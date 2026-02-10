@@ -1,4 +1,4 @@
-import { ThemedText } from '@/components/themed-text';
+import { ThemedText } from '@/components/ui/themed-text';
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -12,9 +12,8 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
-  View,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -82,7 +81,7 @@ export default function ProfileEditor() {
         // If the API returns updated user object, merge it into auth
         try {
           await updateUser(updated as any);
-        } catch {}
+        } catch { }
       }
     } catch (e) {
       console.error("Failed to save profile:", e);
@@ -146,7 +145,7 @@ export default function ProfileEditor() {
           <Pressable
             style={[
               styles.editPictureButton,
-              { backgroundColor: colors.primary },
+              { backgroundColor: Colors.primary },
             ]}
             onPress={async () => {
               // ask permission and open image picker

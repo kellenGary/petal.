@@ -1,8 +1,9 @@
-import Feed from "@/components/Feed";
-import FollowingSotds from "@/components/following-sotds";
-import Hero from "@/components/hero";
-import SotdSuggestionPopup from "@/components/sotd-suggestion-popup";
-import { ThemedText } from '@/components/themed-text';
+import Feed from "@/components/home/feed";
+import FollowingSotds from "@/components/home/following-sotds";
+import Hero from "@/components/ui/hero";
+import QuickNav from "@/components/ui/quick-nav";
+import SotdSuggestionPopup from "@/components/home/sotd-suggestion-popup";
+import { ThemedText } from '@/components/ui/themed-text';
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "@/contexts/LocationContext";
@@ -50,13 +51,13 @@ export default function HomeScreen() {
     <>
       {/* Hero */}
       <View style={styles.headerWrapper}>
-        <Hero/>
+        <Hero />
         <View style={styles.headerContentContainer}>
           {/* Live Listeners Section */}
           {/* <LiveListeners /> */}
 
           {/* Following Songs of the Day Section */}
-          <FollowingSotds />
+          <QuickNav />
 
           {/* Map Section */}
           <Pressable
@@ -80,6 +81,7 @@ export default function HomeScreen() {
                 showsCompass={false}
                 showsPointsOfInterest={false}
                 showsBuildings={false}
+                userInterfaceStyle={isDark ? "dark" : "light"}
               />
             ) : (
               <View
@@ -96,16 +98,7 @@ export default function HomeScreen() {
               </View>
             )}
           </Pressable>
-
-
         </View>
-      </View>
-
-      {/* Feed Header */}
-      <View style={styles.feedHeaderContainer}>
-        <ThemedText style={[styles.activeHeaderText, { color: colors.text }]}>
-          Your Feed
-        </ThemedText>
       </View>
     </>
   );
@@ -136,7 +129,6 @@ const styles = StyleSheet.create({
   },
   headerWrapper: {
     width: "100%",
-    gap: 12,
   },
   headerContainer: {
     width: "100%",
@@ -165,11 +157,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+    gap: 8,
   },
   activeHeaderText: {
     fontSize: 16,
     fontWeight: "500",
-    color: "black",
   },
   sectionContainer: {
     paddingHorizontal: 16,

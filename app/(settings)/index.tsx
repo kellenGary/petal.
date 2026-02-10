@@ -1,4 +1,4 @@
-import { ThemedText } from '@/components/themed-text';
+import { ThemedText } from '@/components/ui/themed-text';
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { RelativePathString, router } from "expo-router";
@@ -9,8 +9,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  View,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -18,17 +17,96 @@ import {
   SettingsRow,
   SettingsSection,
   SettingsSwitch,
-} from "@/components/settings";
+} from "@/components/ui/settings";
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import * as ThemeContext from "@/contexts/ThemeContext";
+import { useThemeContext } from "@/contexts/ThemeContext";
 import profileApi from "@/services/profileApi";
+import { LayoutAnimation, Platform, UIManager } from "react-native";
+
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+function AppearanceSelector() {
+  const { userTheme, setTheme, theme } = useThemeContext();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const colorScheme = theme;
+  const isDark = colorScheme === "dark";
+  const colors = Colors[isDark ? "dark" : "light"];
+
+  const toggleExpand = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsExpanded(!isExpanded);
+  };
+
+  const handleSelect = (newTheme: ThemeContext.UserThemePreference) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setTheme(newTheme);
+  };
+
+  return (
+    <View>
+      <SettingsRow
+        icon="palette"
+        iconColor="#AF52DE"
+        label="Appearance"
+        sublabel={
+          userTheme === "system"
+            ? "System"
+            : userTheme === "dark"
+              ? "Dark"
+              : "Light"
+        }
+        showChevron={!isExpanded}
+        onPress={toggleExpand}
+        rightElement={
+          isExpanded ? (
+            <MaterialIcons name="keyboard-arrow-down" size={22} color={colors.icon} />
+          ) : undefined
+        }
+      />
+      {isExpanded && (
+        <View style={styles.appearanceOptions}>
+          {(["light", "dark", "system"] as const).map((option) => (
+            <Pressable
+              key={option}
+              onPress={() => handleSelect(option)}
+              style={[
+                styles.appearanceOption,
+                {
+                  backgroundColor:
+                    userTheme === option
+                      ? isDark
+                        ? "rgba(255,255,255,0.1)"
+                        : "rgba(0,0,0,0.05)"
+                      : "transparent",
+                },
+              ]}
+            >
+              <ThemedText style={styles.appearanceOptionText}>
+                {option.charAt(0).toUpperCase() + option.slice(1)}
+              </ThemedText>
+              {userTheme === option && (
+                <MaterialIcons name="check" size={20} color={Colors.primary} />
+              )}
+            </Pressable>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
 
 export default function SettingsPage() {
   const { signOut, user } = useAuth();
   const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { theme } = useThemeContext();
+  const isDark = theme === "dark";
   const colors = Colors[isDark ? "dark" : "light"];
 
   // Toggle states (placeholders for future implementation)
@@ -179,16 +257,7 @@ export default function SettingsPage() {
             value={pushNotifications}
             onValueChange={setPushNotifications}
           />
-          <SettingsRow
-            icon="palette"
-            iconColor="#AF52DE"
-            label="Appearance"
-            sublabel={isDark ? "Dark" : "Light"}
-            showChevron
-            onPress={() => {
-              // TODO: Implement appearance picker
-            }}
-          />
+          <AppearanceSelector />
           <SettingsSwitch
             icon="lock"
             iconColor="#8E8E93"
@@ -313,5 +382,21 @@ const styles = StyleSheet.create({
   },
   versionText: {
     fontSize: 13,
+  },
+  appearanceOptions: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  appearanceOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 4,
+  },
+  appearanceOptionText: {
+    fontSize: 16,
   },
 });

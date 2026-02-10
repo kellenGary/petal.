@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import api from "../services/api";
+import profileApi, { ProfileData } from "../services/profileApi";
 import spotifyApi from "../services/spotifyApi";
 
 interface User {
@@ -23,12 +24,14 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
+  profileData: ProfileData | null;
   jwtToken: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   signIn: (token: string, userData: User) => Promise<void>;
   signOut: () => Promise<void>;
   updateUser: (userData: User) => Promise<void>;
+  fetchUserProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,6 +39,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [jwtToken, setJwtToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const isSigningOut = useRef(false);
 
@@ -74,9 +78,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         "[AuthContext] Saved tracks sync complete:",
         savedTracksResult,
       );
+
+      // Sync saved albums
+      const savedAlbumsResult = await spotifyApi.syncSavedAlbums();
+      console.log(
+        "[AuthContext] Saved albums sync complete:",
+        savedAlbumsResult,
+      );
+
+      // Sync followed artists
+      const followedArtistsResult = await spotifyApi.syncFollowedArtists();
+      console.log(
+        "[AuthContext] Followed artists sync complete:",
+        followedArtistsResult,
+      );
     } catch (error) {
       // Don't fail the app if sync fails, just log it
       console.error("[AuthContext] Failed to sync Spotify data:", error);
+    }
+  }
+
+  async function fetchUserProfile() {
+    try {
+      const data = await profileApi.getAppProfile();
+      setProfileData(data);
+    } catch (error) {
+      console.error("[AuthContext] Failed to fetch user profile:", error);
     }
   }
 
@@ -89,7 +116,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       api.setAuthToken(token);
       if (userStr) {
         setUser(JSON.parse(userStr));
+        // Fetch profile data in background if we have a user
+        fetchUserProfile();
       }
+      console.log("[AuthContext] Loaded auth data:", token);
     } catch (error) {
       console.error("Failed to load auth data:", error);
     } finally {
@@ -110,6 +140,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Sync token to API service
       api.setAuthToken(token);
       setUser(userData);
+
+      // Fetch profile data immediately after sign in
+      await fetchUserProfile();
     } catch (error) {
       console.error("Failed to save auth data:", error);
       throw error;
@@ -133,12 +166,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear token from API service
       api.setAuthToken(null);
       setUser(null);
+      setProfileData(null);
     } catch (error) {
       console.error("Failed to delete auth data:", error);
       // Even if secure store fails, we should clear the state
       setJwtToken(null);
       api.setAuthToken(null);
       setUser(null);
+      setProfileData(null);
     } finally {
       // We leave isSigningOut as true since we are now signed out.
       // It will be reset on the next signIn.
@@ -159,12 +194,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
+        profileData,
         jwtToken,
         isLoading,
         isAuthenticated: jwtToken !== null,
         signIn,
         signOut,
         updateUser,
+        fetchUserProfile,
       }}
     >
       {children}

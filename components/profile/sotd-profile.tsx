@@ -1,4 +1,4 @@
-import { ThemedText } from '@/components/themed-text';
+import { ThemedText } from '@/components/ui/themed-text';
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -91,7 +91,7 @@ export default function SOTDProfile({
       <MaterialIcons
         name="music-note"
         size={24}
-        color={colors.primary}
+        color={Colors.primary}
         style={styles.icon}
       />
     </Animated.View>

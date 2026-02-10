@@ -1,7 +1,7 @@
-import FilterBubble from "@/components/filter-bubble";
-import SearchBar from "@/components/search-bar";
-import SelectableItem from "@/components/selectable-item";
-import { ThemedText } from '@/components/themed-text';
+import FilterBubble from "@/components/ui/filter-bubble";
+import SearchBar from "@/components/ui/search-bar";
+import SelectableItem from "@/components/ui/selectable-item";
+import { ThemedText } from '@/components/ui/themed-text';
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -120,7 +120,7 @@ export default function PostScreen() {
     if (isLoading) {
       return (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={Colors.primary} />
           <ThemedText style={[styles.loadingText, { color: colors.text }]}>
             Loading your {activeFilter.toLowerCase()}s...
           </ThemedText>
@@ -132,21 +132,18 @@ export default function PostScreen() {
       case "Recent Song":
         const filteredSongs = searchItems(
           recentTracks,
-          ["track.name", "track.artists"],
+          ["name", "artistNames"],
           searchQuery
         );
         return filteredSongs.length > 0 ? (
-          filteredSongs.map((item: any, index: number) => {
-            const track = item.track;
+          filteredSongs.map((track: any, index: number) => {
             const content: SelectedContent = {
               type: "song",
-              id: track.id, // DB numeric id
-              spotifyId: track.spotify_id || track.id, // Spotify ID string
+              id: track.id,
+              spotifyId: track.spotifyId || track.id,
               name: track.name,
-              imageUrl: track.album?.image_url || null,
-              subtitle:
-                track.artists?.map((a: any) => a.name).join(", ") ||
-                "Unknown Artist",
+              imageUrl: track.albumImageUrl || null,
+              subtitle: track.artistNames?.join(", ") || "Unknown Artist",
             };
             return (
               <SelectableItem
@@ -171,21 +168,18 @@ export default function PostScreen() {
       case "Liked Song":
         const filteredLikedSongs = searchItems(
           likedTracks,
-          ["track.name", "track.artists"],
+          ["name", "artistNames"],
           searchQuery
         );
         return filteredLikedSongs.length > 0 ? (
-          filteredLikedSongs.map((item: any, index: number) => {
-            const track = item.track;
+          filteredLikedSongs.map((track: any, index: number) => {
             const content: SelectedContent = {
               type: "song",
               id: track.id,
-              spotifyId: track.spotify_id || track.spotifyId || track.id,
+              spotifyId: track.spotifyId || track.id,
               name: track.name,
-              imageUrl: track.album?.imageUrl || null,
-              subtitle:
-                track.artists?.map((a: any) => a.name).join(", ") ||
-                "Unknown Artist",
+              imageUrl: track.albumImageUrl || null,
+              subtitle: track.artistNames?.join(", ") || "Unknown Artist",
             };
             return (
               <SelectableItem
@@ -340,7 +334,7 @@ export default function PostScreen() {
             <Pressable
               style={[
                 styles.continueButton,
-                { backgroundColor: colors.primary },
+                { backgroundColor: Colors.primary },
               ]}
               onPress={handleContinue}
             >
@@ -349,7 +343,7 @@ export default function PostScreen() {
           </View>
         )}
       </View>
-      
+
       {/* Search Bar */}
       <SearchBar
         value={searchQuery}

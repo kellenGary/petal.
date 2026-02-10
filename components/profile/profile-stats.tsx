@@ -1,4 +1,4 @@
-import { ThemedText } from "@/components/themed-text";
+import { ThemedText } from "@/components/ui/themed-text";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ProfileData } from "@/services/profileApi";
@@ -125,8 +125,6 @@ const styles = StyleSheet.create({
         width: 60,
         height: 60,
         borderRadius: 30,
-        borderWidth: 2,
-        borderColor: "rgba(255,255,255,0.3)",
     },
     topArtistName: {
         marginTop: 6,

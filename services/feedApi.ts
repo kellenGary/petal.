@@ -69,6 +69,10 @@ export interface FeedPost {
   artist: FeedArtist | null;
   metadataJson: string | null;
   listeningSessionId: number | null;
+  likeCount: number;
+  repostCount: number;
+  originalPostId: number | null;
+  originalPostUser: FeedUser | null;
 }
 
 export interface FeedListeningSessionPost extends FeedPost {
@@ -92,7 +96,8 @@ export type PostType =
   | "SharedTrack"
   | "SharedAlbum"
   | "SharedPlaylist"
-  | "SharedArtist";
+  | "SharedArtist"
+  | "Repost";
 
 export type PostVisibility = "Public" | "Followers";
 
@@ -454,6 +459,175 @@ class FeedApiService {
     }
 
     return await response.json();
+  }
+
+  /**
+   * Like a post
+   */
+  async likePost(
+    postId: number,
+  ): Promise<{ isLiked: boolean; likeCount: number }> {
+    const response = await api.makeAuthenticatedRequest(
+      `/api/post/${postId}/like`,
+      {
+        method: "POST",
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to like post");
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Unlike a post
+   */
+  async unlikePost(
+    postId: number,
+  ): Promise<{ isLiked: boolean; likeCount: number }> {
+    const response = await api.makeAuthenticatedRequest(
+      `/api/post/${postId}/like`,
+      {
+        method: "DELETE",
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to unlike post");
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Get like status for a post
+   */
+  async getLikeStatus(
+    postId: number,
+  ): Promise<{ isLiked: boolean; likeCount: number }> {
+    const response = await api.makeAuthenticatedRequest(
+      `/api/post/${postId}/like/status`,
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to get like status");
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Get like status for multiple posts
+   */
+  async getLikeStatusBatch(
+    postIds: number[],
+  ): Promise<Record<number, { isLiked: boolean; likeCount: number }>> {
+    const response = await api.makeAuthenticatedRequest(
+      "/api/post/likes/status/batch",
+      {
+        method: "POST",
+        body: JSON.stringify(postIds),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to get like status batch");
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Repost a post
+   */
+  async repostPost(postId: number): Promise<{
+    isReposted: boolean;
+    repostCount: number;
+    repostPostId: number;
+  }> {
+    const response = await api.makeAuthenticatedRequest(
+      `/api/post/${postId}/repost`,
+      {
+        method: "POST",
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to repost");
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Remove a repost
+   */
+  async removeRepost(
+    postId: number,
+  ): Promise<{ isReposted: boolean; repostCount: number }> {
+    const response = await api.makeAuthenticatedRequest(
+      `/api/post/${postId}/repost`,
+      {
+        method: "DELETE",
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to remove repost");
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Get repost status for a post
+   */
+  async getRepostStatus(
+    postId: number,
+  ): Promise<{ isReposted: boolean; repostCount: number }> {
+    const response = await api.makeAuthenticatedRequest(
+      `/api/post/${postId}/repost/status`,
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to get repost status");
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Get repost status for multiple posts
+   */
+  async getRepostStatusBatch(
+    postIds: number[],
+  ): Promise<Record<number, { isReposted: boolean; repostCount: number }>> {
+    const response = await api.makeAuthenticatedRequest(
+      "/api/post/reposts/status/batch",
+      {
+        method: "POST",
+        body: JSON.stringify(postIds),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to get repost status batch");
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Check if a post is a repost
+   */
+  isRepost(post: FeedPost): boolean {
+    return post.type === "Repost" && post.originalPostId !== null;
   }
 }
 

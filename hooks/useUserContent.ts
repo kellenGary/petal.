@@ -1,3 +1,4 @@
+import { FeedTrack } from "@/services/feedApi";
 import listeningHistoryApi from "@/services/listeningHistoryApi";
 import profileApi from "@/services/profileApi";
 import userDataApi from "@/services/userDataApi";
@@ -21,8 +22,8 @@ type PaginationState = {
 };
 
 export default function useUserContent(userId?: number) {
-  const [recentTracks, setRecentTracks] = useState<any[]>([]);
-  const [likedTracks, setLikedTracks] = useState<any[]>([]);
+  const [recentTracks, setRecentTracks] = useState<FeedTrack[]>([]);
+  const [likedTracks, setLikedTracks] = useState<FeedTrack[]>([]);
   const [likedAlbums, setLikedAlbums] = useState<any[]>([]);
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [followedArtists, setFollowedArtists] = useState<any[]>([]);
@@ -44,6 +45,19 @@ export default function useUserContent(userId?: number) {
     likedAlbums: { total: 0, hasMore: true },
     followedArtists: { total: 0, hasMore: true },
     topArtists: { total: 0, hasMore: true },
+  });
+
+  /**
+   * Transform enriched listening history entry to FeedTrack format
+   */
+  const transformToFeedTrack = (entry: any): FeedTrack => ({
+    id: entry.track?.id ?? 0,
+    spotifyId: entry.track?.spotify_id ?? "",
+    name: entry.track?.name ?? "Unknown Track",
+    artistNames: entry.track?.artists?.map((a: any) => a.name) ?? [],
+    albumName: entry.track?.album?.name ?? null,
+    albumImageUrl: entry.track?.album?.image_url ?? null,
+    durationMs: entry.track?.duration_ms ?? 0,
   });
 
   /**
@@ -71,7 +85,8 @@ export default function useUserContent(userId?: number) {
           offset,
           userId,
         );
-        const newItems = data.items || [];
+        const rawItems = data.items || [];
+        const newItems = rawItems.map(transformToFeedTrack);
 
         if (refresh || offset === 0) {
           setRecentTracks(newItems);
@@ -86,13 +101,26 @@ export default function useUserContent(userId?: number) {
           recentTracks: { total, hasMore },
         }));
 
-        return data;
+        return { items: newItems, total };
       } finally {
         setLoading((s) => ({ ...s, tracks: false }));
       }
     },
     [recentTracks.length, userId, loading.tracks, pagination.recentTracks],
   );
+
+  /**
+   * Transform liked track item to FeedTrack format
+   */
+  const transformLikedTrackToFeedTrack = (item: any): FeedTrack => ({
+    id: parseInt(item.track?.id, 10) || 0,
+    spotifyId: item.track?.id ?? "",
+    name: item.track?.name ?? "Unknown Track",
+    artistNames: item.track?.artists?.map((a: any) => a.name) ?? [],
+    albumName: item.track?.album?.name ?? null,
+    albumImageUrl: item.track?.album?.imageUrl ?? null,
+    durationMs: item.track?.durationMs ?? 0,
+  });
 
   /**
    * Fetch liked tracks with pagination support
@@ -110,7 +138,8 @@ export default function useUserContent(userId?: number) {
       setLoading((s) => ({ ...s, tracks: true }));
       try {
         const data = await userDataApi.getLikedTracks(limit, offset, userId);
-        const newItems = data.items || [];
+        const rawItems = data.items || [];
+        const newItems = rawItems.map(transformLikedTrackToFeedTrack);
 
         if (refresh || offset === 0) {
           setLikedTracks(newItems);
@@ -125,7 +154,7 @@ export default function useUserContent(userId?: number) {
           likedTracks: { total, hasMore },
         }));
 
-        return data;
+        return { items: newItems, total };
       } finally {
         setLoading((s) => ({ ...s, tracks: false }));
       }

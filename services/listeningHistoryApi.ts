@@ -372,15 +372,20 @@ class ListeningHistoryService {
    * @param limit - Number of records to return (1-1000, default 50)
    * @param offset - Number of records to skip (default 0)
    * @param userId - Optional user ID to fetch history for another user
+   * @param days - Optional. Filter to only include tracks from the last N days
    */
   async getEnrichedListeningHistory(
     limit: number = 50,
     offset: number = 0,
     userId?: number,
+    days?: number,
   ): Promise<EnrichedListeningHistoryResponse> {
     const params = new URLSearchParams();
     params.append("limit", Math.min(Math.max(limit, 1), 1000).toString());
     params.append("offset", Math.max(offset, 0).toString());
+    if (days !== undefined && days > 0) {
+      params.append("days", days.toString());
+    }
 
     const endpoint = userId
       ? `/api/listeninghistory/enriched/${userId}?${params.toString()}`

@@ -73,6 +73,19 @@ public class FollowController : ControllerBase
         };
 
         _context.Follows.Add(follow);
+
+        // Create notification for the followed user
+        var notification = new Notification
+        {
+            UserId = targetUserId,
+            ActorUserId = currentUserId.Value,
+            Type = NotificationType.Follow,
+            PostId = null,
+            IsRead = false,
+            CreatedAt = DateTime.UtcNow
+        };
+        _context.Notifications.Add(notification);
+
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("User {FollowerId} followed user {FolloweeId}", currentUserId, targetUserId);

@@ -88,6 +88,8 @@ public class FeedController : ControllerBase
             .Include(p => p.Playlist)
             .Include(p => p.Artist)
             .Include(p => p.ListeningSession)
+            .Include(p => p.OriginalPost)
+                .ThenInclude(op => op!.User)
             .Select(p => new FeedPostDto
             {
                 Id = p.Id,
@@ -132,7 +134,17 @@ public class FeedController : ControllerBase
                     ImageUrl = p.Artist.ImageUrl
                 } : null,
                 MetadataJson = p.MetadataJson,
-                ListeningSessionId = p.ListeningSessionId
+                ListeningSessionId = p.ListeningSessionId,
+                LikeCount = p.Likes.Count,
+                RepostCount = _context.Reposts.Count(r => r.OriginalPostId == p.Id),
+                OriginalPostId = p.OriginalPostId,
+                OriginalPostUser = p.OriginalPost != null ? new FeedUserDto
+                {
+                    Id = p.OriginalPost.User.Id,
+                    DisplayName = p.OriginalPost.User.DisplayName,
+                    Handle = p.OriginalPost.User.Handle,
+                    ProfileImageUrl = p.OriginalPost.User.ProfileImageUrl
+                } : null
             })
             .ToListAsync();
 
@@ -205,6 +217,8 @@ public class FeedController : ControllerBase
             .Include(p => p.Playlist)
             .Include(p => p.Artist)
             .Include(p => p.ListeningSession)
+            .Include(p => p.OriginalPost)
+                .ThenInclude(op => op!.User)
             .Select(p => new FeedPostDto
             {
                 Id = p.Id,
@@ -249,7 +263,17 @@ public class FeedController : ControllerBase
                     ImageUrl = p.Artist.ImageUrl
                 } : null,
                 MetadataJson = p.MetadataJson,
-                ListeningSessionId = p.ListeningSessionId
+                ListeningSessionId = p.ListeningSessionId,
+                LikeCount = p.Likes.Count,
+                RepostCount = _context.Reposts.Count(r => r.OriginalPostId == p.Id),
+                OriginalPostId = p.OriginalPostId,
+                OriginalPostUser = p.OriginalPost != null ? new FeedUserDto
+                {
+                    Id = p.OriginalPost.User.Id,
+                    DisplayName = p.OriginalPost.User.DisplayName,
+                    Handle = p.OriginalPost.User.Handle,
+                    ProfileImageUrl = p.OriginalPost.User.ProfileImageUrl
+                } : null
             })
             .ToListAsync();
 
@@ -284,6 +308,10 @@ public class FeedPostDto
     public FeedArtistDto? Artist { get; set; }
     public string? MetadataJson { get; set; }
     public int? ListeningSessionId { get; set; }
+    public int LikeCount { get; set; }
+    public int RepostCount { get; set; }
+    public int? OriginalPostId { get; set; }
+    public FeedUserDto? OriginalPostUser { get; set; }
 }
 
 public class FeedUserDto

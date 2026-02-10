@@ -1,5 +1,6 @@
-import { ThemedText } from '@/components/themed-text';
+import { ThemedText } from '@/components/ui/themed-text';
 import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import artistApi, { Album, Artist, Track } from "@/services/artistApi";
 import playbackApi from "@/services/playbackApi";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -8,13 +9,10 @@ import { Image } from "expo-image";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  useColorScheme,
-  View,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -205,7 +203,7 @@ export default function ArtistScreen() {
                   <MaterialIcons
                     name="play-circle-filled"
                     size={28}
-                    color={colors.primary}
+                    color={Colors.primary}
                   />
                 </Pressable>
               </Pressable>

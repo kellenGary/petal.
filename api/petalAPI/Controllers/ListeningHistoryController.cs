@@ -4,6 +4,7 @@ using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using PetalAPI.Services;
 using PetalAPI.Data;
+using PetalAPI.Models;
 
 namespace PetalAPI.Controllers;
 
@@ -197,10 +198,12 @@ public class ListeningHistoryController : ControllerBase
     /// </summary>
     /// <param name="limit">The maximum number of items to return.</param>
     /// <param name="offset">The number of items to skip.</param>
+    /// <param name="days">Optional. Filter to only include tracks from the last N days.</param>
     [HttpGet("enriched")]
     public async Task<IActionResult> GetEnrichedListeningHistory(
         [FromQuery] int limit = 50,
-        [FromQuery] int offset = 0)
+        [FromQuery] int offset = 0,
+        [FromQuery] int? days = null)
     {
         try
         {
@@ -215,8 +218,16 @@ public class ListeningHistoryController : ControllerBase
 
             // Use the enriched view for better performance
             var query = _context.ListeningHistoryEnriched
-                .Where(h => h.UserId == userId)
-                .OrderByDescending(h => h.PlayedAt);
+                .Where(h => h.UserId == userId);
+
+            // Apply date filter if days is specified
+            if (days.HasValue && days.Value > 0)
+            {
+                var sinceDate = DateTime.UtcNow.AddDays(-days.Value);
+                query = query.Where(h => h.PlayedAt >= sinceDate);
+            }
+
+            query = query.OrderByDescending(h => h.PlayedAt);
 
             var total = await query.CountAsync();
             var items = await query
@@ -294,11 +305,13 @@ public class ListeningHistoryController : ControllerBase
     /// <param name="userId">The ID of the user to retrieve history for.</param>
     /// <param name="limit">The maximum number of items to return.</param>
     /// <param name="offset">The number of items to skip.</param>
+    /// <param name="days">Optional. Filter to only include tracks from the last N days.</param>
     [HttpGet("enriched/{userId}")]
     public async Task<IActionResult> GetEnrichedListeningHistoryByUserId(
         int userId,
         [FromQuery] int limit = 50,
-        [FromQuery] int offset = 0)
+        [FromQuery] int offset = 0,
+        [FromQuery] int? days = null)
     {
         try
         {
@@ -321,8 +334,16 @@ public class ListeningHistoryController : ControllerBase
 
             // Use the enriched view for better performance
             var query = _context.ListeningHistoryEnriched
-                .Where(h => h.UserId == userId)
-                .OrderByDescending(h => h.PlayedAt);
+                .Where(h => h.UserId == userId);
+
+            // Apply date filter if days is specified
+            if (days.HasValue && days.Value > 0)
+            {
+                var sinceDate = DateTime.UtcNow.AddDays(-days.Value);
+                query = query.Where(h => h.PlayedAt >= sinceDate);
+            }
+
+            query = query.OrderByDescending(h => h.PlayedAt);
 
             var total = await query.CountAsync();
             var items = await query
@@ -657,6 +678,87 @@ public class ListeningHistoryController : ControllerBase
         }
 
         return streak;
+    }
+    /// <summary>
+    /// Seeds the listening history with dummy data containing random global locations for testing map visualization.
+    /// </summary>
+    /// <param name="count">The number of entries to generate (default 50).</param>
+    [HttpPost("seed")]
+    public async Task<IActionResult> SeedListeningHistory([FromQuery] int count = 50)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            {
+                return Unauthorized(new { error = "Invalid token" });
+            }
+
+            if (count < 1 || count > 1000) count = 50;
+
+            // Get some tracks to use
+            // Fetch first 100 tracks and pick randomly in memory to avoid LINQ translation issues with Guid.NewGuid()
+            var candidateTracks = await _context.Tracks
+                .Take(100)
+                .ToListAsync();
+            
+            if (!candidateTracks.Any())
+            {
+                return BadRequest(new { error = "No tracks found in database to seed with" });
+            }
+            
+            var random = new Random();
+            var tracks = candidateTracks.OrderBy(x => random.Next()).Take(20).ToList();
+
+            if (!tracks.Any())
+            {
+                return BadRequest(new { error = "No tracks found in database to seed with" });
+            }
+
+
+            var historyEntries = new List<ListeningHistory>();
+            var now = DateTime.UtcNow;
+
+            for (int i = 0; i < count; i++)
+            {
+                var track = tracks[random.Next(tracks.Count)];
+                
+                // Generate random location
+                // Latitude: -90 to 90
+                var latitude = random.NextDouble() * 180 - 90;
+                // Longitude: -180 to 180
+                var longitude = random.NextDouble() * 360 - 180;
+
+                historyEntries.Add(new ListeningHistory
+                {
+                    UserId = userId,
+                    TrackId = track.Id,
+                    PlayedAt = now.AddMinutes(-random.Next(1, 10000)), // Random time in past
+                    MsPlayed = track.DurationMs,
+                    ContextUri = null,
+                    DeviceType = "generated_seed",
+                    Source = ListeningSource.App,
+                    Latitude = latitude,
+                    Longitude = longitude,
+                    LocationAccuracy = 10.0,
+                    DedupeKey = Guid.NewGuid().ToString() // Ensure uniqueness
+                });
+            }
+
+            _context.ListeningHistory.AddRange(historyEntries);
+            await _context.SaveChangesAsync();
+
+            return Ok(new 
+            { 
+                message = $"Successfully seeded {count} listening history entries",
+                locations = historyEntries.Select(h => new { h.Latitude, h.Longitude })
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error seeding listening history");
+            return StatusCode(500, new { error = "Internal server error" });
+        }
     }
 }
 

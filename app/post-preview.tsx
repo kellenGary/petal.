@@ -1,4 +1,4 @@
-import { ThemedText } from '@/components/themed-text';
+import { ThemedText } from '@/components/ui/themed-text';
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import postApi, { SelectedContent } from "@/services/postApi";
@@ -7,16 +7,15 @@ import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -90,7 +89,7 @@ export default function PostPreviewScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
-        style={[styles.container, {backgroundColor: colors.background}]}
+        style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={styles.contentContainer}
         keyboardShouldPersistTaps="handled"
       >
@@ -119,8 +118,8 @@ export default function PostPreviewScreen() {
             <ThemedText style={[styles.previewSubtitle, { color: colors.text, opacity: 0.7 }]} numberOfLines={1}>
               {selectedContent.subtitle}
             </ThemedText>
-            <View style={[styles.typeBadge, { backgroundColor: colors.primary + "30" }]}>
-              <ThemedText style={[styles.typeBadgeText, { color: colors.primary }]}>
+            <View style={[styles.typeBadge, { backgroundColor: Colors.primary + "30" }]}>
+              <ThemedText style={[styles.typeBadgeText, { color: Colors.primary }]}>
                 {getPostTypeLabel()}
               </ThemedText>
             </View>
@@ -158,7 +157,7 @@ export default function PostPreviewScreen() {
         <Pressable
           style={[
             styles.postButton,
-            { backgroundColor: colors.primary },
+            { backgroundColor: Colors.primary },
             isPosting && styles.postButtonDisabled,
           ]}
           onPress={handlePost}

@@ -1,9 +1,9 @@
-import { ThemedText } from '@/components/themed-text';
+import { ThemedText } from '@/components/ui/themed-text';
 import {
   ClusteredMapMarker,
   ClusteredMarker,
   clusterMarkers,
-} from "@/components/map";
+} from "@/components/ui/map";
 import { Colors, Fonts } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";

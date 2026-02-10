@@ -1,4 +1,4 @@
-import { ThemedText } from "@/components/themed-text";
+import { ThemedText } from "@/components/ui/themed-text";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ProfileData } from "@/services/profileApi";
@@ -6,7 +6,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
-import FollowButton from "./follow-button";
+import FollowButton from "../ui/follow-button";
 import SOTDProfile from "./sotd-profile";
 
 interface ProfileHeaderProps {

@@ -1,4 +1,4 @@
-import { ThemedText } from '@/components/themed-text';
+import { ThemedText } from '@/components/ui/themed-text';
 import { useAuth } from "@/contexts/AuthContext";
 import { User } from "@/services/api";
 import profileApi from "@/services/profileApi";

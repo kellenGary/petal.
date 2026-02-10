@@ -1,5 +1,5 @@
-import { ThemedText } from '@/components/themed-text';
-import LikeButton from "@/components/like-button";
+import LikeButton from "@/components/ui/like-button";
+import { ThemedText } from '@/components/ui/themed-text';
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/services/api";
@@ -16,9 +16,8 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   useColorScheme,
-  View,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -183,7 +182,7 @@ export default function SongModal() {
           { backgroundColor: colors.background },
         ]}
       >
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={Colors.primary} />
         <ThemedText style={[styles.loadingText, { color: colors.text }]}>
           Loading song...
         </ThemedText>
@@ -250,7 +249,7 @@ export default function SongModal() {
             </ThemedText>
           )}
           <Pressable
-            style={[styles.playButton, { backgroundColor: colors.primary }]}
+            style={[styles.playButton, { backgroundColor: Colors.primary }]}
             onPress={handlePlaySong}
           >
             <MaterialIcons name="play-arrow" size={20} color="#fff" />
@@ -307,7 +306,7 @@ export default function SongModal() {
                 : "People who liked this"}
             </ThemedText>
             {fansLoading ? (
-              <ActivityIndicator size="small" color={colors.primary} />
+              <ActivityIndicator size="small" color={Colors.primary} />
             ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.fansRow}>
@@ -409,7 +408,7 @@ export default function SongModal() {
                       styles.popularityFill,
                       {
                         width: `${song.popularity}%`,
-                        backgroundColor: colors.primary,
+                        backgroundColor: Colors.primary,
                       },
                     ]}
                   />

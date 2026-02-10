@@ -9,10 +9,11 @@ const tintColorLight = "#262626"; // primary
 const tintColorDark = "#FCFCFC"; // primary-foreground
 
 export const Colors = {
+  primary: "#538ce9ff",
   light: {
     // Standard Expo/React Native references
     text: "#262626", // foreground
-    background: "#fcf8f2ff", // background
+    background: "#efefefff", // background
     tint: tintColorLight,
     icon: "#737373", // muted-foreground
     tabIconDefault: "#737373",

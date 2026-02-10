@@ -7,13 +7,24 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import "react-native-reanimated";
+import {
+  configureReanimatedLogger,
+  ReanimatedLogLevel,
+} from "react-native-reanimated";
+
+// This is the default configuration for the logger, but with strict mode disabled.
+configureReanimatedLogger({
+  level: ReanimatedLogLevel.warn,
+  strict: false,
+});
 
 import { Colors } from "@/constants/theme";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ListeningHistoryProvider } from "@/contexts/ListeningHistoryContext";
 import { LocationProvider } from "@/contexts/LocationContext";
 import { PlaybackProvider } from "@/contexts/playbackContext";
+import { ScrollProvider } from "@/contexts/ScrollContext";
+import * as ThemeContext from "@/contexts/ThemeContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 function RootLayoutNav() {
@@ -106,28 +117,46 @@ function RootLayoutNav() {
           contentStyle: { backgroundColor: colors.background },
         }}
       />
+      <Stack.Screen
+        name="location-history"
+        options={{
+          presentation: "formSheet",
+          sheetAllowedDetents: [0.5],
+          sheetGrabberVisible: true,
+          contentStyle: { backgroundColor: colors.background },
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }
 
-export default function RootLayout() {
+function AppContent() {
   const colorScheme = useColorScheme();
 
+  return (
+    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+      <RootLayoutNav />
+      <StatusBar
+        style={colorScheme === "dark" ? "light" : "dark"}
+        translucent
+      />
+    </ThemeProvider>
+  );
+}
+
+export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
         <LocationProvider>
           <PlaybackProvider>
             <ListeningHistoryProvider>
-              <ThemeProvider
-                value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-              >
-                <RootLayoutNav />
-                <StatusBar
-                  style={colorScheme === "dark" ? "light" : "dark"}
-                  translucent
-                />
-              </ThemeProvider>
+              <ThemeContext.ThemeProvider>
+                <ScrollProvider>
+                  <AppContent />
+                </ScrollProvider>
+              </ThemeContext.ThemeProvider>
             </ListeningHistoryProvider>
           </PlaybackProvider>
         </LocationProvider>

@@ -1,9 +1,9 @@
-import ExploreContent from "@/components/explore-content";
-import FilterBubble from "@/components/filter-bubble";
-import GraphView from "@/components/graph-view";
-import SearchBar from "@/components/search-bar";
-import SearchView from "@/components/search-view";
-import { ThemedText } from "@/components/themed-text";
+import ExploreContent from "@/components/explore/explore-content";
+import FilterBubble from "@/components/ui/filter-bubble";
+import GraphView from "@/components/explore/graph-view";
+import SearchBar from "@/components/ui/search-bar";
+import SearchView from "@/components/ui/search-view";
+import { ThemedText } from "@/components/ui/themed-text";
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -22,7 +22,6 @@ export default function ExploreScreen() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"users" | "content">("users");
 
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
@@ -98,7 +97,6 @@ export default function ExploreScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Graph Layer - lowest z-index, fills entire screen */}
-      {activeTab === "users" && (
         <View style={styles.graphLayer}>
           {!loading && !searchQuery && (
             <GraphView
@@ -115,7 +113,6 @@ export default function ExploreScreen() {
             </View>
           )}
         </View>
-      )}
 
       {/* Header Overlay - positioned on top, only covers header area */}
       {!searchQuery && (
@@ -138,31 +135,7 @@ export default function ExploreScreen() {
                 placeholder="Search by name or username..."
               />
             </View>
-
-            <View style={styles.tabContainer}>
-              <FilterBubble
-                filterName="Users"
-                activeFilter={activeTab === "users" ? "Users" : "Content"}
-                setActiveFilter={(filter) =>
-                  setActiveTab(filter === "Users" ? "users" : "content")
-                }
-              />
-              <FilterBubble
-                filterName="Content"
-                activeFilter={activeTab === "users" ? "Users" : "Content"}
-                setActiveFilter={(filter) =>
-                  setActiveTab(filter === "Users" ? "users" : "content")
-                }
-              />
-            </View>
           </View>
-        </View>
-      )}
-
-      {/* Content tab - replaces graph when active, but only if no search query */}
-      {!searchQuery && activeTab === "content" && (
-        <View style={[styles.contentContainer, { paddingTop: insets.top + 140 }]}>
-          <ExploreContent />
         </View>
       )}
 

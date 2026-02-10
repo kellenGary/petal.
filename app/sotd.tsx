@@ -1,6 +1,6 @@
-import { ThemedText } from '@/components/themed-text';
-import FilterBubble from "@/components/filter-bubble";
-import SelectableItem from "@/components/selectable-item";
+import FilterBubble from "@/components/ui/filter-bubble";
+import SelectableItem from "@/components/ui/selectable-item";
+import { ThemedText } from '@/components/ui/themed-text';
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -14,9 +14,8 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
-  View,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -98,7 +97,7 @@ export default function SOTDSelectScreen() {
     if (isLoading) {
       return (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={Colors.primary} />
           <ThemedText style={[styles.loadingText, { color: colors.text }]}>
             Loading your {activeFilter.toLowerCase()}s...
           </ThemedText>
@@ -124,13 +123,15 @@ export default function SOTDSelectScreen() {
 
     return (
       <>
-        {filteredTracks.map((item: any, index: number) => {
-          const track = item.track;
+        {filteredTracks.map((track: any, index: number) => {
+          if (!track || !track.id) return null;
+
           const trackData: SelectedTrack = {
             id: track.id,
             name: track.name,
-            imageUrl: track.album?.image_url || track.album?.imageUrl || null,
+            imageUrl: track.albumImageUrl || track.album?.image_url || track.album?.imageUrl || null,
             subtitle:
+              track.artistNames?.join(", ") ||
               track.artists?.map((a: any) => a.name).join(", ") ||
               "Unknown Artist",
           };
@@ -168,7 +169,7 @@ export default function SOTDSelectScreen() {
             <Pressable
               style={[
                 styles.confirmButton,
-                { backgroundColor: colors.primary },
+                { backgroundColor: Colors.primary },
                 saving && styles.confirmButtonDisabled,
               ]}
               onPress={handleConfirm}

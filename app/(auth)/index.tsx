@@ -1,5 +1,5 @@
-import RingCarousel from "@/components/RingCarousel";
-import { ThemedText } from '@/components/themed-text';
+import RingCarousel from "@/components/home/ring-carousel";
+import { ThemedText } from '@/components/ui/themed-text';
 import { CLIENT_ID, REDIRECT_URI, SCOPES } from "@/constants/auth";
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,12 +7,12 @@ import api from "@/services/api";
 import { LinearGradient } from "expo-linear-gradient";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect, useState } from "react";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   Alert,
   Dimensions,
   Pressable,
   StyleSheet,
-  useColorScheme,
   View
 } from "react-native";
 

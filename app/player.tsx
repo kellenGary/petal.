@@ -1,4 +1,4 @@
-import AudioPlayer from "@/components/audio-player";
+import AudioPlayer from "@/components/ui/audio-player";
 import { StyleSheet, View, Text } from "react-native";
 
 export default function PlayerModal() {

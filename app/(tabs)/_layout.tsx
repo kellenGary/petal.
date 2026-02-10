@@ -1,61 +1,23 @@
-import MiniPlayer from "@/components/mini-player";
-import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
-import { DynamicColorIOS, StyleSheet, View } from "react-native";
+import CustomTabBar from "@/components/ui/custom-tab-bar";
+import MiniPlayer from "@/components/ui/mini-player";
+import { Tabs } from "expo-router";
+import { StyleSheet, View } from "react-native";
 
 export default function TabLayout() {
   return (
     <View style={styles.container}>
-      <NativeTabs
-        labelStyle={{
-          color: DynamicColorIOS({
-            dark: "white",
-            light: "black",
-          }),
+      <Tabs
+        screenOptions={{
+          headerShown: false,
         }}
-        tintColor={DynamicColorIOS({
-          dark: "white",
-          light: "black",
-        })}
+        tabBar={(props) => <CustomTabBar {...props} />}
       >
-        <NativeTabs.Trigger name="index">
-          <Label hidden />
-          <Icon
-            sf={{ default: "house", selected: "house.fill" }}
-            drawable="custom_android_drawable"
-          />
-        </NativeTabs.Trigger>
-        <NativeTabs.Trigger name="map">
-          <Label hidden />
-          <Icon
-            sf={{ default: "map", selected: "map.fill" }}
-            drawable="custom_settings_drawable"
-          />
-        </NativeTabs.Trigger>
-        <NativeTabs.Trigger name="post">
-          <Label hidden />
-          <Icon
-            sf={{ default: "plus.circle", selected: "plus.circle.fill" }}
-            drawable="custom_settings_drawable"
-          />
-        </NativeTabs.Trigger>
-        <NativeTabs.Trigger name="explore">
-          <Label hidden />
-          <Icon
-            sf={{
-              default: "magnifyingglass.circle",
-              selected: "magnifyingglass.circle.fill",
-            }}
-            drawable="custom_settings_drawable"
-          />
-        </NativeTabs.Trigger>
-        <NativeTabs.Trigger name="profile">
-          <Label hidden />
-          <Icon
-            sf={{ default: "person", selected: "person.fill" }}
-            drawable="custom_settings_drawable"
-          />
-        </NativeTabs.Trigger>
-      </NativeTabs>
+        <Tabs.Screen name="index" />
+        <Tabs.Screen name="map" />
+        <Tabs.Screen name="post" />
+        <Tabs.Screen name="explore" />
+        <Tabs.Screen name="profile" />
+      </Tabs>
       <View style={styles.miniPlayerWrapper} pointerEvents="box-none">
         <MiniPlayer />
       </View>
@@ -70,7 +32,7 @@ const styles = StyleSheet.create({
   },
   miniPlayerWrapper: {
     position: "absolute",
-    bottom: 49 + 8 + 36, // Tab bar height (49) + padding (8) + spacing (36)
+    bottom: 80, // Tab bar height - positions mini-player directly on top
     left: 0,
     right: 0,
     zIndex: 20,
